@@ -1,11 +1,11 @@
 
-public class Superblock {
+public class SuperBlock {
    
    public int totalBlocks;       // the number of disk blocks
    public int totalInodes;       // the number of inodes
    public int freeList;          // the block number of the free list's head
 
-   public Superblock(int diskSize) {
+   public SuperBlock(int diskSize) {
       // read the superblock from disk. 
       // check disk contents are valid. 
       // if invalid, call format( ).
