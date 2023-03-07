@@ -1,10 +1,11 @@
+import java.util.Vector;
 
 public class FileTable {
-   private Vector table; // the actual entity of this file table
-   private Directory dir; // the root directory
+   private Vector<FileTableEntry> table;  // the actual entity of this file table
+   private Directory dir;                 // the root directory
 
-   public FileTable( Directory directory ) {    // constructor
-      table = new Vector();      // instantiate a file (structure) table
+   public FileTable( Directory directory ) {     // constructor
+      table = new Vector<FileTableEntry>();      // instantiate a file (structure) table
       dir = directory;           // receive a reference to the Director from the file system
    }
 
