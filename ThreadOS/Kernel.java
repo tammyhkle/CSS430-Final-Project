@@ -30,8 +30,8 @@ public class Kernel {
    public final static int OPEN = 14; // SysLib.open( String fileName )
    public final static int CLOSE = 15; // SysLib.close( int fd )
    public final static int SIZE = 16; // SysLib.size( int fd )
-   public final static int SEEK = 17; // SysLib.seek( int fd, int offest, 
-   //              int whence )
+   public final static int SEEK = 17; // SysLib.seek( int fd, int offest,
+   // int whence )
    public final static int FORMAT = 18; // SysLib.format( int files )
    public final static int DELETE = 19; // SysLib.delete( String fileName )
 
@@ -56,12 +56,11 @@ public class Kernel {
    // File System
    private static FileSystem fs;
 
-   private final static int COND_DISK_REQ = 1; // wait condition 
+   private final static int COND_DISK_REQ = 1; // wait condition
    private final static int COND_DISK_FIN = 2; // wait condition
 
    // Standard input
-   private static BufferedReader input
-      = new BufferedReader(new InputStreamReader(System.in));
+   private static BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
 
    // The heart of Kernel
    public static int interrupt(int irq, int cmd, int param, Object args) {
@@ -105,21 +104,21 @@ public class Kernel {
                   return OK;
                case RAWREAD: // read a block of data from disk
                   while (disk.read(param, (byte[]) args) == false)
-                  ; // busy wait
+                     ; // busy wait
                   while (disk.testAndResetReady() == false)
-                  ; // busy wait
+                     ; // busy wait
                   return OK;
                case RAWWRITE: // write a block of data to disk
                   while (disk.write(param, (byte[]) args) == false)
-                  ; // busy wait
+                     ; // busy wait
                   while (disk.testAndResetReady() == false)
-                  ; // busy wait
+                     ; // busy wait
                   return OK;
                case SYNC: // synchronize disk data to a real file
                   while (disk.sync() == false)
-                  ; // busy wait
+                     ; // busy wait
                   while (disk.testAndResetReady() == false)
-                  ; // busy wait
+                     ; // busy wait
                   return OK;
                case READ:
                   switch (param) {
@@ -172,8 +171,8 @@ public class Kernel {
                   cache.flush();
                   return OK;
                case OPEN: // to be implemented in project
-                  if ((myTcb = scheduler.getMyTcb( )) != null) {
-                     String[] s = ( String[] ) args;
+                  if ((myTcb = scheduler.getMyTcb()) != null) {
+                     String[] s = (String[]) args;
                      FileTableEntry ent = fs.open(s[0], s[1]);
                      int fd = myTcb.getFd(ent);
                      return fd;
@@ -181,10 +180,9 @@ public class Kernel {
                      return ERROR;
                   }
                case CLOSE: // to be implemented in project
-                  if ((myTcb = scheduler.getMyTcb( )) != null) {
-                     FileTableEntry ftEntry = myTcb.getFtEnt( param );
-                     if (ftEntry == null || fs.close(ftEntry) == false 
-                                         || myTcb.returnFd(param) != ftEntry) {
+                  if ((myTcb = scheduler.getMyTcb()) != null) {
+                     FileTableEntry ftEntry = myTcb.getFtEnt(param);
+                     if (ftEntry == null || fs.close(ftEntry) == false || myTcb.returnFd(param) != ftEntry) {
                         return ERROR;
                      } else {
                         return OK;
@@ -192,25 +190,62 @@ public class Kernel {
                   }
                   return ERROR;
                case SIZE: // to be implemented in project
-                  return OK;
+                  // check if scheduler has a valid TCB for current thread
+                  TCB myTcb = scheduler.getMyTcb();
+                  if (myTcb != null) {
+                     // get the FTE for the specified file from the TCB
+                     FileTableEntry ftEntry = myTcb.getFtEnt(param);
+                     if (ftEntry != null) {
+                        // get the size of the file using the file system's fsize method
+                        int size = fs.fsize(ftEntry);
+
+                        // return the size of file
+                        return size;
+                     }
+                  }
+                  // something went wrong aka Error
+                  return ERROR;
                case SEEK: // to be implemented in project
-                  return OK;
+                  // need to check if the scheduler has valid TCB for current thread
+                  TCB myTcb = scheduler.getMyTcb();
+                  if (myTcb != null) {
+                     // retreive the seeek arguments from args param
+                     int[] seekArgs = (int[]) args;
+
+                     // grab the FTE for specified file from TCB
+                     FileTableEntry ftEntry = myTcb.getFtEnt(param);
+                     if (ftEntry != null) {
+                        // do the seek operation on the file system
+                        int result = fs.seek(ftEntry, seekArgs[0], seekArgs[1]);
+
+                        // return result
+                        return result;
+                     }
+                  }
+                  // something went wrong aka Error
+                  return ERROR;
                case FORMAT: // to be implemented in project
-                  if(fs.format(param) == 0) {
+                  if (fs.format(param) == 0) { // 0 is true
                      return OK;
                   } else {
                      return ERROR;
                   }
                case DELETE: // to be implemented in project
-                  return OK;
+                  // need to check if args is valid string
+                  if (fs.delete((String) args) == 0) { // 0 is true
+                     return OK;
+                  } else {
+                     // something went wrong aka Error
+                     return ERROR;
+                  }
             }
             return ERROR;
          case INTERRUPT_DISK: // Disk interrupts
             // wake up the thread waiting for a service completion
-            //ioQueue.dequeueAndWakeup( COND_DISK_FIN );
+            // ioQueue.dequeueAndWakeup( COND_DISK_FIN );
 
             // wake up the thread waiting for a request acceptance
-            //ioQueue.dequeueAndWakeup( COND_DISK_REQ );
+            // ioQueue.dequeueAndWakeup( COND_DISK_REQ );
 
             return OK;
          case INTERRUPT_IO: // other I/O interrupts (not implemented)
@@ -225,7 +260,7 @@ public class Kernel {
       Object thrObj = null;
 
       try {
-         //get the user thread class from its name
+         // get the user thread class from its name
          Class thrClass = Class.forName(thrName);
          if (args.length == 1) // no arguments
             thrObj = thrClass.newInstance(); // instantiate this class obj
@@ -236,12 +271,11 @@ public class Kernel {
             for (int i = 1; i < args.length; i++)
                thrArgs[i - 1] = args[i];
             Object[] constructorArgs = new Object[] {
-               thrArgs
+                  thrArgs
             };
 
             // locate this class object's constructors
-            Constructor thrConst
-               = thrClass.getConstructor(new Class[] { String[].class });
+            Constructor thrConst = thrClass.getConstructor(new Class[] { String[].class });
 
             // instantiate this class object by calling this constructor
             // with arguments
