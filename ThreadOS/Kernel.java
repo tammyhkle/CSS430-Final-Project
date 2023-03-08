@@ -196,7 +196,11 @@ public class Kernel {
                case SEEK: // to be implemented in project
                   return OK;
                case FORMAT: // to be implemented in project
-                  return OK;
+                  if(fs.format(param) == 0) {
+                     return OK;
+                  } else {
+                     return ERROR;
+                  }
                case DELETE: // to be implemented in project
                   return OK;
             }
