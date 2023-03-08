@@ -1,3 +1,12 @@
+/*
+ * @file FileTable.java 
+ * @author Tammy Le
+ * @brief CSS 430B O.S.
+ * File table - mostly derived from the professor pdf. Major public methods: fallor and ffree
+   (look at FileTableEntry.java and Directory.java)
+ * @date 03/06/2023
+ */
+
 import java.util.Vector;
 
 public class FileTable {
@@ -10,16 +19,12 @@ public class FileTable {
    }
 
    /* FALLOC */
-   // mostly derived from the professor pdf
-   // major public methods
-   // look at FileTableEntry.java and Directory.java
+   // allocate a new file (structure) table entry for this file name
+   // allocate/retrieve and register the corresponding inode using dir
+   // increment this inode's count
+   // immediately write back this inode to the disk
+   // return a reference to this file (structure) table entry
    public synchronized FileTableEntry falloc(String filename, String mode) {
-      // allocate a new file (structure) table entry for this file name
-      // allocate/retrieve and register the corresponding inode using dir
-      // increment this inode's count
-      // immediately write back this inode to the disk
-      // return a reference to this file (structure) table entry
-
       short Number = -1;
       Inode inode = null;
 
@@ -90,18 +95,57 @@ public class FileTable {
          // this is derived from the professor
          inode.count++;
          inode.toDisk(inode.iNumber);
-         FileTableEntry entry = new FileTableEntry(inode, inode.iNumber, mode);
-         table.addElement(entry); // create a table entry and register it
-         return entry;
+         FileTableEntry e = new FileTableEntry(inode, inode.iNumber, mode);
+         table.addElement(e); // create a table entry and register it
+         return e; // e means entry
       }
    }
 
    /* FFREE */
-   public synchronized boolean ffree(FileTableEntry e) {
-      // receive a file table entry reference
-      // save the corresponding inode to the disk
-      // free this file table entry.
-      // return true if this file table entry found in my table
+   // receive a file table entry reference
+   // save the corresponding inode to the disk
+   // free this file table entry.
+   // return true if this file table entry found in my table
+   public synchronized boolean ffree(FileTableEntry e) { // e means entry
+      // Create a new inode object corresponding to the entry's iNumber
+      Inode inode = new Inode(e.iNumber);
+
+      // Attempt to remove the entry from the file table
+      if (table.remove(e)) {
+         // If the entry was removed successfully:
+         // Decrease the count of users of that file
+         inode.count--;
+
+         // If the file was being read from:
+         if (inode.flag == Inode.READ) {
+            // If there are no more readers:
+            if (inode.count == 0) {
+               // Notify one waiting thread (if any) that the file can be written to
+               notify();
+
+               // Set the inode's flag to "used"
+               inode.flag = Inode.USED;
+            }
+         }
+         // If the file was being written to:
+         else if (inode.flag == Inode.WRITE) {
+            // Set the inode's flag to "used"
+            inode.flag = Inode.USED;
+
+            // Notify all waiting threads that the file can be written to
+            notifyAll();
+         }
+
+         // - Save the corresponding inode to the disk
+         inode.toDisk(e.iNumber);
+
+         // Return true to indicate that the entry was found in the file table and
+         // removed
+         return true;
+      }
+
+      // Return false to indicate that the entry was not found in the file table
+      return false;
    }
 
    /* FEMPTY */
