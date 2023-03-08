@@ -53,6 +53,9 @@ public class Kernel {
    private static SyncQueue waitQueue; // for threads to wait for their child
    private static SyncQueue ioQueue; // I/O queue
 
+   // File System
+   private static FileSystem fs;
+
    private final static int COND_DISK_REQ = 1; // wait condition 
    private final static int COND_DISK_FIN = 2; // wait condition
 
@@ -169,7 +172,14 @@ public class Kernel {
                   cache.flush();
                   return OK;
                case OPEN: // to be implemented in project
-                  return OK;
+                  if ( ( myTcb = scheduler.getMyTcb( ) ) != null ) {
+                     String[] s = ( String[] ) args;
+                     FileTableEntry ent = fs.open(s[0], s[1]);
+                     int fd = myTcb.getFd(ent);
+                     return fd;
+                  } else {
+                     return ERROR;
+                  }
                case CLOSE: // to be implemented in project
                   return OK;
                case SIZE: // to be implemented in project
