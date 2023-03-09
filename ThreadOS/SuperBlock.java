@@ -38,11 +38,17 @@ public class SuperBlock {
       // initialize free blocks
 
    }
-
+   
+   // get a new free block from the freelist
    public int getFreeBlock() {
-      // get a new free block from the freelist
-      int freeBlockNumber = 0;
-      return freeBlockNumber;
+      if (freeList > 0 && freeList < totalBlocks) {
+         byte [] superBlock = new byte[Disk.blockSize];
+         SysLib.rawread(freeList, superBlock);
+         int freeBlockNumber = freeList;
+         freeList = SysLib.bytes2int(superBlock, 0);
+         return freeBlockNumber;
+      }
+      return -1;
    }
 
    public boolean returnBlock( int oldBlockNumber ) {
