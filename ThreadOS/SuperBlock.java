@@ -23,14 +23,20 @@ public class SuperBlock {
       }
    }
 
+   // write back in-memory superblock to disk: SysLib.rawwrite( 0, superblock ); 
    void sync() {
-      // write back in-memory superblock to disk: SysLib.rawwrite( 0, superblock ); 
+      byte [] superBlock = new byte[Disk.blockSize];
+      SysLib.int2bytes(totalBlocks, superBlock, 0);
+      SysLib.int2bytes(totalInodes, superBlock, 4);
+      SysLib.int2bytes(freeList, superBlock, 8);
+      SysLib.rawwrite(0, superBlock); 
    }
 
    void format( int files ) {
       // initialize the superblock
       // initialize each inode and immediately write it back to disk
       // initialize free blocks
+
    }
 
    public int getFreeBlock() {
