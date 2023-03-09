@@ -25,80 +25,54 @@ public class FileTable {
    // immediately write back this inode to the disk
    // return a reference to this file (structure) table entry
    public synchronized FileTableEntry falloc(String filename, String mode) {
-      short Number = -1;
+      short iNumber = -1;
       Inode inode = null;
 
       while (true) {
          // Look up the inode for the given filename in the directory.
-         short inumber;
-         if (filename.equals("/")) {
-            inumber = 0;
-         } else {
-            inumber = dir.namei(filename);
-         }
+         iNumber = filename.equals("/") ? 0 : dir.namei(filename);
+         if (iNumber >= 0) {
 
-         if (inumber >= 0) {
             // If the inode already exists, get it from disk.
-            inode = new Inode(inumber);
+            inode = new Inode(iNumber);
 
             // Check if the file is being opened for reading.
             if (mode.equals("r")) { // if ( mode.compareTo( "r")) { } "compareTo" causes error
+
                // If the file is not currently being written, mark it as being read and return.
-               if (inode.flag != WRITE) { // no need to wait
-                  inode.flag = READ;
+               if (inode.flag == 1) { // no need to wait
                   break;
-               }
-
-               // Otherwise, wait for the write lock to be released.
-               try {
-                  wait(); // wait for a write to exit
-               } catch (InterruptedException ex) {
-                  // Restore the interrupted status and try again.
-                  Thread.currentThread().interrupt();
-               }
-
-            } else {
-               // If the file is being opened for writing, mark it as being written and return.
-               if (inode.flag == UNUSED || inode.flag == USED) {
-                  inode.flag = WRITE;
-                  break;
-               }
-
-               // If the file is already being written, wait for the write lock to be released.
-               if (inode.flag == WRITE) {
+               } else if (inode.flag == 2) {
                   try {
-                     wait();
+                     wait(); // wait for a write to exit
                   } catch (InterruptedException ex) {
-                     // Restore the interrupted status and try again.
-                     Thread.currentThread().interrupt();
                   }
+               } else if (inode.flag == 0) { // to be deleted
+                  iNumber = -1; // no more open
+                  return null;
                }
-            }
-
-         } else {
-            if (!mode.equals("r")) {
+            } else if (mode.equals("w")) {
                // If the inode does not exist and the file is not being opened for reading,
                // allocate a new inode for the file and mark it as being written.
-               inumber = dir.ialloc(filename);
-               inode = new Inode(inumber);
-               inode.flag = WRITE;
+               iNumber = dir.ialloc(filename);
+               inode = new Inode(iNumber);
+               inode.flag = 2;
                break;
-
             } else {
                // If the inode does not exist and the file is being opened for reading,
                // return null to indicate that the file could not be opened.
                return null;
             }
          }
-
          // Update the inode on disk and create a new file table entry for the file.
          // this is derived from the professor
          inode.count++;
-         inode.toDisk(inode.iNumber);
-         FileTableEntry e = new FileTableEntry(inode, inode.iNumber, mode);
-         table.addElement(e); // create a table entry and register it
-         return e; // e means entry
+         inode.toDisk(iNumber);
+         FileTableEntry ftEntry = new FileTableEntry(inode, iNumber, mode);
+         table.addElement(ftEntry); // create a table entry and register it
+         return ftEntry; // e means FileTableEntry, returning a FileTableEntry object
       }
+      return null; // added to to get rid of error "method must return a result of type FileTableEntry"
    }
 
    /* FFREE */
@@ -106,38 +80,38 @@ public class FileTable {
    // save the corresponding inode to the disk
    // free this file table entry.
    // return true if this file table entry found in my table
-   public synchronized boolean ffree(FileTableEntry e) { // e means entry
+   public synchronized boolean ffree(FileTableEntry ftEntry) { // e means ftEntry
       // Create a new inode object corresponding to the entry's iNumber
-      Inode inode = new Inode(e.iNumber);
+      Inode inode = new Inode(ftEntry.iNumber);
 
       // Attempt to remove the entry from the file table
-      if (table.remove(e)) {
+      if (table.remove(ftEntry)) {
          // If the entry was removed successfully:
          // Decrease the count of users of that file
          inode.count--;
 
          // If the file was being read from:
-         if (inode.flag == Inode.READ) {
+         if (inode.flag == 1) {
             // If there are no more readers:
             if (inode.count == 0) {
                // Notify one waiting thread (if any) that the file can be written to
                notify();
 
                // Set the inode's flag to "used"
-               inode.flag = Inode.USED;
+               inode.flag = 1;
             }
          }
          // If the file was being written to:
-         else if (inode.flag == Inode.WRITE) {
+         else if (inode.flag == 2) {
             // Set the inode's flag to "used"
-            inode.flag = Inode.USED;
+            inode.flag = 2;
 
             // Notify all waiting threads that the file can be written to
             notifyAll();
          }
 
          // - Save the corresponding inode to the disk
-         inode.toDisk(e.iNumber);
+         inode.toDisk(ftEntry.iNumber);
 
          // Return true to indicate that the entry was found in the file table and
          // removed
