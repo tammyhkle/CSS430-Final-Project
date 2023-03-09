@@ -256,9 +256,19 @@ public class FileSystem {
    // closes the file corresponding to fd, commits all file transactions on this
    // file, and unregisters fd from the user file descriptor table of the calling
    // thread's TCB. The return value is 0 in success, otherwise -1.
-   public int close(int fd) {
+   public int close(FileTableEntry ftEntry) {
+      synchronized(ftEntry) {
+		
+			ftEntry.count--;  // decrement user count
 
-      return 0;
+         // if no more users, remove file table entry
+			if (ftEntry.count == 0) {
+				int result = (filetable.ffree(ftEntry)) ? 0 : -1;
+            return result;
+			}
+
+         return 0;
+		}
    }
 
    /* DELETE */
