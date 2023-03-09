@@ -172,8 +172,8 @@ public class Kernel {
                case OPEN: // to be implemented in project
                   if ((myTcb = scheduler.getMyTcb()) != null) {
                      String[] s = (String[]) args;
-                     FileTableEntry ent = fs.open(s[0], s[1]);
-                     int fd = myTcb.getFd(ent);
+                     FileTableEntry ftEntry = fs.open(s[0], s[1]);
+                     int fd = myTcb.getFd(ftEntry);
                      return fd;
                   } else {
                      return ERROR;
@@ -181,7 +181,8 @@ public class Kernel {
                case CLOSE: // to be implemented in project
                   if ((myTcb = scheduler.getMyTcb()) != null) {
                      FileTableEntry ftEntry = myTcb.getFtEnt(param);
-                     if (ftEntry == null || fs.close(ftEntry) == false || myTcb.returnFd(param) != ftEntry) {
+                     int fd = myTcb.getFd(ftEntry);
+                     if (ftEntry == null || fs.close(fd) == -1 || myTcb.returnFd(param) != ftEntry) {
                         return ERROR;
                      } else {
                         return OK;
@@ -190,13 +191,15 @@ public class Kernel {
                   return ERROR;
                case SIZE: // to be implemented in project
                   // check if scheduler has a valid TCB for current thread
-                  TCB myTcb = scheduler.getMyTcb();
+                  myTcb = scheduler.getMyTcb();
                   if (myTcb != null) {
                      // get the FTE for the specified file from the TCB
                      FileTableEntry ftEntry = myTcb.getFtEnt(param);
                      if (ftEntry != null) {
+                        // file decriptor for file entry
+                        int fd = myTcb.getFd(ftEntry);
                         // get the size of the file using the file system's fsize method
-                        int size = fs.fsize(ftEntry);
+                        int size = fs.fsize(fd);
 
                         // return the size of file
                         return size;
@@ -206,7 +209,7 @@ public class Kernel {
                   return ERROR;
                case SEEK: // to be implemented in project
                   // need to check if the scheduler has valid TCB for current thread
-                  TCB myTcb = scheduler.getMyTcb();
+                  myTcb = scheduler.getMyTcb();
                   if (myTcb != null) {
                      // retreive the seeek arguments from args param
                      int[] seekArgs = (int[]) args;
@@ -214,8 +217,9 @@ public class Kernel {
                      // grab the FTE for specified file from TCB
                      FileTableEntry ftEntry = myTcb.getFtEnt(param);
                      if (ftEntry != null) {
+                        int fd = myTcb.getFd(ftEntry);
                         // do the seek operation on the file system
-                        int result = fs.seek(ftEntry, seekArgs[0], seekArgs[1]);
+                        int result = fs.seek(fd, seekArgs[0], seekArgs[1]);
 
                         // return result
                         return result;

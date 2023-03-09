@@ -54,7 +54,7 @@ public class FileSystem {
    // inodes to be allocated) in your file system. The return value is 0 on
    // success, otherwise -1.
    public int format(int files) {
-    	superblock.format(files);
+      superblock.format(files);
       directory = new Directory(superblock.totalInodes);
       filetable = new FileTable(directory);
       return 0;
@@ -72,14 +72,14 @@ public class FileSystem {
    // thread's user file descriptor table is full, SysLib.open should return an
    // error value. The seek pointer is initialized to zero in the mode "r", "w",
    // and "w+", whereas initialized at the end of the file in the mode "a".
-   public int open(String fileName, String mode) {
-      FileTableEntry ftEnt = filetable.falloc(fileName, mode);
+   public FileTableEntry open(String fileName, String mode) {
+      FileTableEntry ftEntry = filetable.falloc(fileName, mode);
       if (mode.equals("w")) {
-         if (deallocAllBlocks(ftEnt) == false) {
-            return -1;
+         if (deallocAllBlocks(ftEntry) == false) {
+            return null;
          }
       }
-      return 0;
+      return ftEntry;
    }
 
    /* READ */
@@ -108,34 +108,34 @@ public class FileSystem {
          int bytesRemain = buffer.length;
 
          while (bytesRemain > 0) {
-               // need to know how many bytes we can read
-               int bytesToRead = Math.min(bytesRemain, Disk.blockSize); // for disk, need to import
+            // need to know how many bytes we can read
+            int bytesToRead = Math.min(bytesRemain, Disk.blockSize); // for disk, need to import
 
-               // need to compute current block and offset inside that block
-               int currentBlock = entry.inode.getBlockNumber(entry.seekPtr);
-               int currentOffset = entry.seekPtr % Disk.blockSize;
+            // need to compute current block and offset inside that block
+            int currentBlock = entry.inode.getBlockNumber(entry.seekPtr);
+            int currentOffset = entry.seekPtr % Disk.blockSize;
 
-               // read block from disk into buffer
-               byte[] blockBuffer = new byte[Disk.blockSize];
-               int bytesReadFromDisk = SysLib.rawread(currentBlock, blockBuffer);
+            // read block from disk into buffer
+            byte[] blockBuffer = new byte[Disk.blockSize];
+            int bytesReadFromDisk = SysLib.rawread(currentBlock, blockBuffer);
 
-               // any errors?
-               if (bytesReadFromDisk < 0) {
-                  return -1;
-               }
-               // copy as many bytes as possible from the buffer to the user's buffer
-               int bytesCopied = Math.min(bytesReadFromDisk - currentOffset, bytesToRead);
-               System.arraycopy(blockBuffer, currentOffset, buffer, bytesRead, bytesCopied);
+            // any errors?
+            if (bytesReadFromDisk < 0) {
+               return -1;
+            }
+            // copy as many bytes as possible from the buffer to the user's buffer
+            int bytesCopied = Math.min(bytesReadFromDisk - currentOffset, bytesToRead);
+            System.arraycopy(blockBuffer, currentOffset, buffer, bytesRead, bytesCopied);
 
-               // update the seek pointer and counters
-               entry.seekPtr += bytesCopied;
-               bytesRead += bytesCopied;
-               bytesRemain -= bytesCopied;
+            // update the seek pointer and counters
+            entry.seekPtr += bytesCopied;
+            bytesRead += bytesCopied;
+            bytesRemain -= bytesCopied;
 
-               // if we reached the end of the file, break out of the loop
-               if (entry.seekPtr == entry.inode.length) {
-                  break;
-               }
+            // if we reached the end of the file, break out of the loop
+            if (entry.seekPtr == entry.inode.length) {
+               break;
+            }
          }
          return bytesRead;
       }
@@ -166,43 +166,43 @@ public class FileSystem {
          int bytesRemain = buffer.length;
 
          while (bytesRemain > 0) {
-               // need to know how many bytes we can write
-               int bytesToWrite = Math.min(bytesRemain, Disk.blockSize);
+            // need to know how many bytes we can write
+            int bytesToWrite = Math.min(bytesRemain, Disk.blockSize);
 
-               // need to compute current block and offset inside that block
-               int currentBlock = entry.inode.getBlockNumber(entry.seekPtr);
-               int currentOffset = entry.seekPtr % Disk.blockSize;
+            // need to compute current block and offset inside that block
+            int currentBlock = entry.inode.getBlockNumber(entry.seekPtr);
+            int currentOffset = entry.seekPtr % Disk.blockSize;
 
-               // read the block from disk into a buffer
-               byte[] blockBuffer = new byte[Disk.blockSize];
-               int bytesReadFromDisk = SysLib.rawread(currentBlock, blockBuffer);
+            // read the block from disk into a buffer
+            byte[] blockBuffer = new byte[Disk.blockSize];
+            int bytesReadFromDisk = SysLib.rawread(currentBlock, blockBuffer);
 
-               // check for errors
-               if (bytesReadFromDisk < 0) {
-                  return -1;
-               }
+            // check for errors
+            if (bytesReadFromDisk < 0) {
+               return -1;
+            }
 
-               // overwrite or append data to the block buffer
-               int bytesWrittenToBlock = Math.min(bytesReadFromDisk - currentOffset, bytesToWrite);
-               System.arraycopy(buffer, bytesWritten, blockBuffer, currentOffset, bytesWrittenToBlock);
+            // overwrite or append data to the block buffer
+            int bytesWrittenToBlock = Math.min(bytesReadFromDisk - currentOffset, bytesToWrite);
+            System.arraycopy(buffer, bytesWritten, blockBuffer, currentOffset, bytesWrittenToBlock);
 
-               // write the modified block buffer to disk
-               int bytesWrittenToDisk = SysLib.rawwrite(currentBlock, blockBuffer);
+            // write the modified block buffer to disk
+            int bytesWrittenToDisk = SysLib.rawwrite(currentBlock, blockBuffer);
 
-               // check for errors
-               if (bytesWrittenToDisk < 0) {
-                  return -1;
-               }
+            // check for errors
+            if (bytesWrittenToDisk < 0) {
+               return -1;
+            }
 
-               // update the seek pointer and counters
-               entry.seekPtr = entry.seekPtr + bytesWrittenToBlock;
-               bytesWritten = bytesWritten + bytesWrittenToBlock;
-               bytesRemain = bytesRemain - bytesWrittenToBlock;
+            // update the seek pointer and counters
+            entry.seekPtr = entry.seekPtr + bytesWrittenToBlock;
+            bytesWritten = bytesWritten + bytesWrittenToBlock;
+            bytesRemain = bytesRemain - bytesWrittenToBlock;
 
-               // if the seek pointer exceeds the length of the file, update the file length
-               if (entry.seekPtr > entry.inode.length) {
-                  entry.inode.length = entry.seekPtr;
-               }
+            // if the seek pointer exceeds the length of the file, update the file length
+            if (entry.seekPtr > entry.inode.length) {
+               entry.inode.length = entry.seekPtr;
+            }
          }
 
          // write the updated inode to disk
@@ -219,7 +219,7 @@ public class FileSystem {
       // synchronize on it to prevent race conditions when accessing the table
       synchronized (openFileTable) {
          if (fd < 0 || openFileTable[fd] == null || fd >= openFileTable.length) {
-               return -1; // The file cannot open, fd is not valid
+            return -1; // The file cannot open, fd is not valid
          }
 
          FileTableEntry entry = openFileTable[fd];
@@ -228,17 +228,17 @@ public class FileSystem {
          // 1. If whence is SEEK_SET (= 0), the file's seek pointer is set to offset
          // bytes from the beginning of the file
          if (whence == SEEK_SET) {
-               newSeekPtr = offset;
-               // 2. If whence is SEEK_CUR (= 1), the file's seek pointer is set to its current
-               // value plus the offset. The offset can be positive or negative.
+            newSeekPtr = offset;
+            // 2. If whence is SEEK_CUR (= 1), the file's seek pointer is set to its current
+            // value plus the offset. The offset can be positive or negative.
          } else if (whence == SEEK_CUR) {
-               newSeekPtr = entry.seekPtr + offset;
-               // 3. If whence is SEEK_END (= 2), the file's seek pointer is set to the size of
-               // the file plus the offset. The offset can be positive or negative.
+            newSeekPtr = entry.seekPtr + offset;
+            // 3. If whence is SEEK_END (= 2), the file's seek pointer is set to the size of
+            // the file plus the offset. The offset can be positive or negative.
          } else if (whence == SEEK_END) {
-               newSeekPtr = entry.inode.length + offset;
+            newSeekPtr = entry.inode.length + offset;
          } else {
-               return -1; // "Error"
+            return -1; // "Error"
          }
          // 4. If the user attempts to set the seek pointer to a negative number you must
          // clamp it to zero. If the user attempts to set the pointer to beyond the file
@@ -257,8 +257,7 @@ public class FileSystem {
    // file, and unregisters fd from the user file descriptor table of the calling
    // thread's TCB. The return value is 0 in success, otherwise -1.
    public int close(int fd) {
-      
-      
+
       return 0;
    }
 
@@ -276,5 +275,10 @@ public class FileSystem {
    // negative when detecting an error.
    public int fsize(int fd) {
       return 0;
+   }
+
+   /* DEALLOCALLBLOCKS */
+   public boolean deallocAllBlocks(FileTableEntry fileTableEntry) {
+      return true;
    }
 }
