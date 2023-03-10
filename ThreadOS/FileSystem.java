@@ -288,7 +288,26 @@ public class FileSystem {
    }
 
    /* DEALLOCALLBLOCKS */
-   public boolean deallocAllBlocks(FileTableEntry fileTableEntry) {
+   // derived from lecture
+   public boolean deallocAllBlocks(FileTableEntry ftEntry) {
+      //busy wait until three are no threads accessing this inode
+      if(ftEntry.inode.count != 1) { // there is only one writer
+         return false;
+      }
+      byte[] indexBlock = ftEntry.inode.unregisterIndexBlock();
+      if (indexBlock != null ) {
+         int offest = 0;
+         short blockNumber;
+         while ( (blockNumber = SysLib.bytes2short(indexBlock, offset)) != -1 ) {
+            superblock.returnBlock( (int)blockNumber);
+         }
+      }
+      for (int i = 0; i < ftEntry.inode.directSize; i++ ) {
+         if (ftEntry.inode.direct[i] != -1 ) {
+            // add code here !!
+         }
+      }
+
       return true;
    }
 }

@@ -57,7 +57,7 @@ public class SuperBlock {
       }
 
       // Set up the free list in the superblock
-      superBlock.freeList = 1; // Start with the first block
+      superBlock.freeList = 1; // Start with the first block to allocate new file
       superBlock.totalFreeBlocks = freeBlockCount - 1; // All blocks except the last one are free
 
       // Write block numbers to the remaining free block
