@@ -53,11 +53,11 @@ public class FileSystem {
    // specifies the maximum number of files to be created, (i.e., the number of
    // inodes to be allocated) in your file system. The return value is 0 on
    // success, otherwise -1.
-   public int format(int files) {
+   public boolean format(int files) {
       superblock.format(files);
       directory = new Directory(superblock.totalInodes);
       filetable = new FileTable(directory);
-      return 0;
+      return true;
    }
 
    /* OPEN */
@@ -296,7 +296,7 @@ public class FileSystem {
       }
       byte[] indexBlock = ftEntry.inode.unregisterIndexBlock();
       if (indexBlock != null ) {
-         int offest = 0;
+         int offset = 0;
          short blockNumber;
          while ( (blockNumber = SysLib.bytes2short(indexBlock, offset)) != -1 ) {
             superblock.returnBlock( (int)blockNumber);
