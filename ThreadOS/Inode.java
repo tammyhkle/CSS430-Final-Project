@@ -10,8 +10,8 @@ public class Inode {
 
    public int length; // file size in bytes
    public short count; // # file-table entries pointing to this
-   public short flag; // 0 = unused, 1 = used(r), 2 = used(!r), 
-   // 3=unused(wreg), 4=used(r,wreq), 5= used(!r,wreg)
+   public short flag; // 0 = unused, 1 = used(r), 2 = used(!r) writing or adding, 
+   // 3=unused(wreg), 4=used(r,wreq) being used w read, 5= used(!r,wreg) not reading or writing  
    public short direct[] = new short[directSize]; // directo pointers
    public short indirect; // an indirect pointer
 
