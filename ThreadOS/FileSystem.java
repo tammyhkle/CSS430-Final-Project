@@ -256,18 +256,17 @@ public class FileSystem {
    // closes the file corresponding to fd, commits all file transactions on this
    // file, and unregisters fd from the user file descriptor table of the calling
    // thread's TCB. The return value is 0 in success, otherwise -1.
-   public int close(FileTableEntry ftEntry) {
+   public boolean close(FileTableEntry ftEntry) {
       synchronized(ftEntry) {
 		
 			ftEntry.count--;  // decrement user count
 
          // if no more users, remove file table entry
 			if (ftEntry.count == 0) {
-				int result = (filetable.ffree(ftEntry)) ? 0 : -1;
-            return result;
+            return filetable.ffree(ftEntry);
 			}
 
-         return -1;
+         return false;
 		}
    }
 
@@ -275,13 +274,9 @@ public class FileSystem {
    // destroys the file specified by fileName. If the file is currently open, it is
    // not destroyed until the last open on it is closed, but new attempts to open
    // it will fail.
-   public int delete(String fileName) {
+   public boolean delete(String fileName) {
       FileTableEntry ftEntry = open(fileName, "w");
-      if (directory.ifree(ftEntry.iNumber) == true && close(ftEntry) == 0) { 
-         return 0;
-      } else {
-         return -1;
-      }
+      return directory.ifree(ftEntry.iNumber) && close(ftEntry);
    }
 
    /* FSIZE */

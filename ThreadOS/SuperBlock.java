@@ -91,7 +91,12 @@ public class SuperBlock {
    // enqueue a given block to the end of the free list
    public boolean returnBlock(int oldBlockNumber) {
       // return this old block to the free list. The list can be a stack.
-      return true; // true or false
+      
+      if(oldBlockNumber > 0 && oldBlockNumber < totalBlocks) {
+         
+      }
+      
+      return true;
    }
 
 }
