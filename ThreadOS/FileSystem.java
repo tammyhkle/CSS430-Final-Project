@@ -267,7 +267,7 @@ public class FileSystem {
             return result;
 			}
 
-         return 0;
+         return -1;
 		}
    }
 
@@ -276,7 +276,12 @@ public class FileSystem {
    // not destroyed until the last open on it is closed, but new attempts to open
    // it will fail.
    public int delete(String fileName) {
-      return 0;
+      FileTableEntry ftEntry = open(fileName, "w");
+      if (directory.ifree(ftEntry.iNumber) == true && close(ftEntry) == 0) { 
+         return 0;
+      } else {
+         return -1;
+      }
    }
 
    /* FSIZE */
