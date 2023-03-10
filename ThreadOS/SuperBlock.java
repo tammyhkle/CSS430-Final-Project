@@ -6,7 +6,6 @@ public class SuperBlock {
    public int totalBlocks; // the number of disk blocks
    public int totalInodes; // the number of inodes
    public int freeList; // the block number of the free list's head
-   private int totalFreeBlocks;
 
    // derived from professor's pdf
    public SuperBlock(int diskSize) {
@@ -37,8 +36,10 @@ public class SuperBlock {
    }
 
    public void format(int files) {
-      // Initialize the SuperBlock
-      SuperBlock superBlock = new SuperBlock(files);
+      // error handling
+      if (files < 0) {
+         files = defaultInodeBlocks;
+      }
 
       // Initialize each inode and write it back to disk
       for (int i = 0; i < files; i++) {
@@ -46,34 +47,31 @@ public class SuperBlock {
          inode.toDisk((short) i); // Look at Inode.java
       }
 
-      // Initialize free blocks
-      int freeBlockCount = superBlock.totalBlocks;
-
-      // Write block numbers to each block, except the last one
-      for (int i = 0; i < freeBlockCount - 1; i++) {
-         byte[] blockData = new byte[Disk.blockSize];
-         SysLib.int2bytes(i + 1, blockData, 0); // Write the block number to the first four bytes of the block.
-         SysLib.rawwrite(i + 1, blockData); // Write the block to the disk.
+      // set up freelist
+      if (files % 16 == 0) {
+         freeList = files / 16 + 1;
+      } else {
+         freeList = files / 16 + 2;
       }
-
-      // Set up the free list in the superblock
-      superBlock.freeList = 1; // Start with the first block to allocate new file
-      superBlock.totalFreeBlocks = freeBlockCount - 1; // All blocks except the last one are free
-
-      // Write block numbers to the remaining free block
-      byte[] lastBlock = new byte[Disk.blockSize];
-      SysLib.int2bytes(-1, lastBlock, 0); // Set the first four bytes to -1 to indicate the end of the free list.
-      SysLib.rawwrite(freeBlockCount - 1, lastBlock); // Write the last block to the disk.
-
       // Write the initialized free blocks to the disk.
-      for (int i = superBlock.freeList; i < superBlock.totalBlocks; i++) {
-         byte[] block = new byte[Disk.blockSize]; // Create a new block of zeros.
-         SysLib.int2bytes(i + 1, block, 0); // Write the block number to the first four bytes of the block.
-         SysLib.rawwrite(i, block); // Write the block to the disk.
+      for (int i = freeList; i < defaultInodeBlocks - 1; i++) {
+         byte[] emptyBlock = new byte[Disk.blockSize]; // Create a new block of zeros.
+
+         // Setting emptyBlock to empty (0)
+         for (int j = 0; j < Disk.blockSize; j++ ) {
+            emptyBlock[j] = 0;
+         }
+         SysLib.int2bytes(i + 1, emptyBlock, 0); // Write the block number to the first four bytes of the block.
+         SysLib.rawwrite(i, emptyBlock); // Write the block to the disk.
       }
+
+      // Now, add the last blocks
+      byte[] lastBlock = new byte[Disk.blockSize];
+      SysLib.int2bytes(-1, lastBlock, 0); 
+      SysLib.rawwrite(defaultInodeBlocks - 1, lastBlock); // Write the last block to the disk.
 
       // Update the SuperBlock on the disk.
-      superBlock.sync();
+      sync();
    }
 
    // dequeue the top block from the free list
@@ -91,11 +89,11 @@ public class SuperBlock {
    // enqueue a given block to the end of the free list
    public boolean returnBlock(int oldBlockNumber) {
       // return this old block to the free list. The list can be a stack.
-      
-      if(oldBlockNumber > 0 && oldBlockNumber < totalBlocks) {
-         
+
+      if (oldBlockNumber > 0 && oldBlockNumber < totalBlocks) {
+
       }
-      
+
       return true;
    }
 

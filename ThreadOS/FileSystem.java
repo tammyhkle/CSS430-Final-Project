@@ -142,14 +142,15 @@ public class FileSystem {
 
             // Calculate the number of bytes to read from this block and adjust
             // remainingBytes accordingly
-            
-            int bytesToRead = Math.min(remainingBytes, bytesLeftInBlock); //math.min returns the smaller value between 2 values
-            
+
+            int bytesToRead = Math.min(remainingBytes, bytesLeftInBlock); // math.min returns the smaller value between
+                                                                          // 2 values
+
             // int bytesToRead;
             // if (remainingBytes > bytesLeftInBlock) {
-               // bytesToRead = bytesLeftInBlock;
+            // bytesToRead = bytesLeftInBlock;
             // } else {
-               // bytesToRead = remainingBytes;
+            // bytesToRead = remainingBytes;
             // }
             // remainingBytes -= bytesToRead;
 
@@ -304,10 +305,10 @@ public class FileSystem {
    // Unless specified otherwise, each of the above system calls returns -1
    // negative when detecting an error.
    public int fsize(FileTableEntry ftEntry) {
-      if (ftEntry.inode != null ) {
+      if (ftEntry.inode != null) {
          return ftEntry.inode.length;
       }
-      return -1; //error
+      return -1; // error
    }
 
    /* DEALLOCALLBLOCKS */
