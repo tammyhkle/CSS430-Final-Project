@@ -181,8 +181,7 @@ public class Kernel {
                case CLOSE: // to be implemented in project
                   if ((myTcb = scheduler.getMyTcb()) != null) {
                      FileTableEntry ftEntry = myTcb.getFtEnt(param);
-                     int fd = myTcb.getFd(ftEntry);
-                     if (ftEntry == null || fs.close(fd) == -1 || myTcb.returnFd(param) != ftEntry) {
+                     if (ftEntry == null || fs.close(ftEntry) == false || myTcb.returnFd(param) != ftEntry) {
                         return ERROR;
                      } else {
                         return OK;
@@ -228,14 +227,14 @@ public class Kernel {
                   // something went wrong aka Error
                   return ERROR;
                case FORMAT: // to be implemented in project
-                  if (fs.format(param) == 0) { // 0 is true
+                  if (fs.format(param) == true) { // 0 is true
                      return OK;
                   } else {
                      return ERROR;
                   }
                case DELETE: // to be implemented in project
                   // need to check if args is valid string
-                  if (fs.delete((String) args) == 0) { // 0 is true
+                  if (fs.delete((String) args) == true) { // 0 is true
                      return OK;
                   } else {
                      // something went wrong aka Error
