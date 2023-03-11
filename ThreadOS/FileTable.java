@@ -2,17 +2,17 @@
  * @file FileTable.java 
  * @author Tammy Le
  * @brief CSS 430B O.S.
- * File table - mostly derived from the professor pdf. Major public methods: fallor and ffree
-   (look at FileTableEntry.java and Directory.java)
+ * Implemented: [d] falloc and ffree
  * @date 03/06/2023
  */
-
 import java.util.Vector;
 
 public class FileTable {
+   // Instance variables
    private Vector<FileTableEntry> table; // the actual entity of this file table
    private Directory dir; // the root directory
 
+   // Constructor
    public FileTable(Directory directory) { // constructor
       table = new Vector<FileTableEntry>(); // instantiate a file (structure) table
       dir = directory; // receive a reference to the Director from the file system
@@ -64,15 +64,14 @@ public class FileTable {
                return null;
             }
          }
-         // Update the inode on disk and create a new file table entry for the file.
-         // this is derived from the professor
-         inode.count++;
-         inode.toDisk(iNumber);
-         FileTableEntry ftEntry = new FileTableEntry(inode, iNumber, mode);
-         table.addElement(ftEntry); // create a table entry and register it
-         return ftEntry; // e means FileTableEntry, returning a FileTableEntry object
       }
-      return null; // added to to get rid of error "method must return a result of type FileTableEntry"
+      // Update the inode on disk and create a new file table entry for the file.
+      // this is derived from the professor
+      inode.count++;
+      inode.toDisk(iNumber);
+      FileTableEntry ftEntry = new FileTableEntry(inode, iNumber, mode);
+      table.addElement(ftEntry); // create a table entry and register it
+      return ftEntry; // returning a FileTableEntry object
    }
 
    /* FFREE */
