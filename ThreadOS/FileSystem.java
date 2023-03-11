@@ -285,14 +285,9 @@ public class FileSystem {
             ftEntry.seekPtr = ftEntry.inode.length;
          }
 
-<<<<<<< HEAD
-         return true;
-		}
-=======
          // return the new seek pointer value
          return ftEntry.seekPtr;
       }
->>>>>>> 389821e1156e50072be988b0de0a1f22761e4473
    }
 
    /* DELETE */
