@@ -170,7 +170,7 @@ public class Kernel {
                         System.err.print((String) args);
                         break;
                   }
-                  return OK;
+                  return fs.write(param, args);
                case CREAD: // to be implemented in assignment 4
                   return cache.read(param, (byte[]) args) ? OK : ERROR;
                case CWRITE: // to be implemented in assignment 4
