@@ -87,8 +87,8 @@ public class SuperBlock {
    }
 
    // enqueue a given block to the end of the free list
+   // return this old block to the free list. The list can be a stack.
    public boolean returnBlock(int oldBlockNumber) {
-      // return this old block to the free list. The list can be a stack.
       
       if(oldBlockNumber > 0 && oldBlockNumber < totalBlocks) {   // check valid block #
          int tempBlock;
@@ -104,18 +104,17 @@ public class SuperBlock {
 
 			SysLib.int2bytes(-1, newBlock, 0);
 
-			while (nextBlock != -1) {           // while not at end of list
-				SysLib.rawread(nextBlock, next);
+			while (nextBlock != -1) {              // while not at end of list
+				
+            SysLib.rawread(nextBlock, next);    // store block content in next
 
 				tempBlock = SysLib.bytes2int(next, 0);
 
 				if (tempBlock == -1) {
-					// set next free
 					SysLib.int2bytes(oldBlockNumber, next, 0);
 					SysLib.rawwrite(nextBlock, next);
 					SysLib.rawwrite(oldBlockNumber, newBlock);
-
-					return true;    //operation complete
+					return true;
 				}
 
 				nextBlock = tempBlock;
