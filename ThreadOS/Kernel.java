@@ -1,3 +1,11 @@
+/*
+ * @file Kernel.java 
+ * @author Tammy Le & Dani Shaykho
+ * @brief CSS 430B O.S.
+ * Implemented: The cases ([d] open, close, format, [t] size, seek, delete) inside interrupt method. 
+ * @date 03/06/2023
+ */
+
 import java.util.*;
 import java.lang.reflect.*;
 import java.io.*;
