@@ -82,6 +82,10 @@ public class Kernel {
                   // instantiate synchronized queues
                   ioQueue = new SyncQueue();
                   waitQueue = new SyncQueue(scheduler.getMaxThreads());
+                  
+                  // instantiate a file system
+                  fs = new FileSystem(1000);
+
                   return OK;
                case EXEC:
                   return sysExec((String[]) args);
@@ -219,9 +223,12 @@ public class Kernel {
                   // something went wrong aka Error
                   return ERROR;
                case FORMAT: // to be implemented in project
+                  System.out.println("Kernel Format");
                   if (fs.format(param) == true) { // 0 is true
+                     System.out.println("Kernel OK");
                      return OK;
                   } else {
+                     System.out.println("Kernel ER");
                      return ERROR;
                   }
                case DELETE: // to be implemented in project

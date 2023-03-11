@@ -21,10 +21,8 @@ public class FileSystem {
 
    public FileSystem(int diskBlocks) {
 
-      // initialize the open file table with MAX_OPEN_FILES entries
-      openFileTable = new FileTableEntry[MAX_OPEN_FILES];
-
       superblock = new SuperBlock(diskBlocks);
+      // System.out.println("" + superblock.totalInodes);
       directory = new Directory(superblock.totalInodes);
       filetable = new FileTable(directory);
 
@@ -40,8 +38,6 @@ public class FileSystem {
       }
       close(dirEntry);
 
-      // ADD other methods for managing the file system...
-
    }
 
    /* FORMAT */
@@ -50,6 +46,7 @@ public class FileSystem {
    // inodes to be allocated) in your file system. The return value is 0 on
    // success, otherwise -1.
    public boolean format(int files) {
+      System.out.println("CHEESe");
       superblock.format(files);
       directory = new Directory(superblock.totalInodes);
       filetable = new FileTable(directory);
