@@ -173,20 +173,20 @@ public class Kernel {
                   if ((myTcb = scheduler.getMyTcb()) != null) {
                      String[] s = (String[]) args;
                      FileTableEntry ftEntry = fs.open(s[0], s[1]);
-                     int fd = myTcb.getFd(ftEntry);
-                     return fd;
+                     return myTcb.getFd(ftEntry);
                   } else {
                      return ERROR;
                   }
                case CLOSE: // to be implemented in project
                   if ((myTcb = scheduler.getMyTcb()) != null) {
                      FileTableEntry ftEntry = myTcb.getFtEnt(param);
-                     int fd = myTcb.getFd(ftEntry);
-                     if (ftEntry == null || fs.close(fd) == -1 || myTcb.returnFd(param) != ftEntry) {
+                     if (ftEntry == null || fs.close(ftEntry) == false ) {
                         return ERROR;
-                     } else {
-                        return OK;
                      }
+                     if ( myTcb.returnFd(param) != ftEntry) {
+                        return ERROR;
+                     }
+                     return OK;
                   }
                   return ERROR;
                case SIZE: // to be implemented in project
@@ -196,13 +196,8 @@ public class Kernel {
                      // get the FTE for the specified file from the TCB
                      FileTableEntry ftEntry = myTcb.getFtEnt(param);
                      if (ftEntry != null) {
-                        // file decriptor for file entry
-                        int fd = myTcb.getFd(ftEntry);
-                        // get the size of the file using the file system's fsize method
-                        int size = fs.fsize(fd);
-
-                        // return the size of file
-                        return size;
+                        // get the size of the file using the file system's fsize method and return
+                        return fs.fsize(ftEntry);
                      }
                   }
                   // something went wrong aka Error
@@ -217,25 +212,21 @@ public class Kernel {
                      // grab the FTE for specified file from TCB
                      FileTableEntry ftEntry = myTcb.getFtEnt(param);
                      if (ftEntry != null) {
-                        int fd = myTcb.getFd(ftEntry);
                         // do the seek operation on the file system
-                        int result = fs.seek(fd, seekArgs[0], seekArgs[1]);
-
-                        // return result
-                        return result;
+                        return fs.seek(ftEntry, seekArgs[0], seekArgs[1]);
                      }
                   }
                   // something went wrong aka Error
                   return ERROR;
                case FORMAT: // to be implemented in project
-                  if (fs.format(param) == 0) { // 0 is true
+                  if (fs.format(param) == true) { // 0 is true
                      return OK;
                   } else {
                      return ERROR;
                   }
                case DELETE: // to be implemented in project
                   // need to check if args is valid string
-                  if (fs.delete((String) args) == 0) { // 0 is true
+                  if (fs.delete((String) args) == true) { // 0 is true
                      return OK;
                   } else {
                      // something went wrong aka Error
