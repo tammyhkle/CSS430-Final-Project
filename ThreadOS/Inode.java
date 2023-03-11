@@ -8,10 +8,15 @@ public class Inode {
    public final static int ErrorPrecBlockUnused = -2;
    public final static int ErrorIndirectNull = -3;
 
+   // Class constants for inode flags
+   public final static int UNUSED = 0;
+   public final static int USED = 1;
+   public final static int READ = 2;
+   public final static int WRITE = 3;
+
    public int length; // file size in bytes
    public short count; // # file-table entries pointing to this
-   public short flag; // 0 = unused, 1 = used(r), 2 = used(!r) writing or adding, 
-   // 3=unused(wreg), 4=used(r,wreq) being used w read, 5= used(!r,wreg) not reading or writing  
+   public short flag; // 0 = unused, 1 = used, 2 = read, 3 = write
    public short direct[] = new short[directSize]; // directo pointers
    public short indirect; // an indirect pointer
 

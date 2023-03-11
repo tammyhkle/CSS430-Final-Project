@@ -1,3 +1,4 @@
+
 /*
  * @file FileTable.java 
  * @author Tammy Le
@@ -8,6 +9,12 @@
 import java.util.Vector;
 
 public class FileTable {
+   // Class constants for inode flags
+   public final static int UNUSED = 0;
+   public final static int USED = 1;
+   public final static int READ = 2;
+   public final static int WRITE = 3;
+
    // Instance variables
    private Vector<FileTableEntry> table; // the actual entity of this file table
    private Directory dir; // the root directory
@@ -29,43 +36,47 @@ public class FileTable {
       Inode inode = null;
 
       while (true) {
-         
+
          // Look up the inode for the given filename in the directory.
          iNumber = filename.equals("/") ? (short) 0 : dir.namei(filename);
 
+         // If the file exists
          if (iNumber >= 0) {
 
             // If the inode already exists, get it from disk.
             inode = new Inode(iNumber);
 
+            // If the mode is Read:
             if (mode.equals("r")) {
-                
+
                // if its read, used, or unused
-               if (inode.flag == 0 || inode.flag == 1 || inode.flag == 2) {
+               if (inode.flag == READ || inode.flag == USED || inode.flag == UNUSED) {
                   // flag = to read
-                  inode.flag = 2;
+                  inode.flag = READ;
                   break;
-               } else if (inode.flag == 3) {   // wait if its being written 
+               } else if (inode.flag == WRITE) { // wait if its being written
                   try {
                      wait();
-                  } catch (InterruptedException e) { }
+                  } catch (InterruptedException e) {
+                  }
                }
 
-            } else {    // requested for writing
-               
+            } else { // requested for writing (aka mode is Write)
+
                // if used or unused
-               if (inode.flag == 1 || inode.flag == 0) {
-                    inode.flag = 3;
-                    break;
-                } else {      // wait if its write or read
-                    try {
-                        wait();
-                    } catch (InterruptedException e) {}
-                }
+               if (inode.flag == USED || inode.flag == UNUSED) {
+                  inode.flag = WRITE;
+                  break;
+               } else { // wait if its write or read
+                  try {
+                     wait();
+                  } catch (InterruptedException e) {
+                  }
+               }
 
             }
 
-         // create new inode for file if node doesn't exist
+            // create new inode for file if node doesn't exist
          } else if (!mode.equals("r")) {
             iNumber = dir.ialloc(filename);
             inode = new Inode(iNumber);
@@ -78,7 +89,7 @@ public class FileTable {
          }
 
       }
-      
+
       // Update the inode on disk and create a new file table entry for the file.
       // this is derived from the professor
       inode.count++;
