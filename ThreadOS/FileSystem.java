@@ -266,7 +266,7 @@ public class FileSystem {
             return filetable.ffree(ftEntry);
 			}
 
-         return false;
+         return true;
 		}
    }
 
