@@ -2,25 +2,19 @@
  * @file FileSystem.java 
  * @author Tammy Le & Dani Shaykho
  * @brief CSS 430B O.S.
- * File system we implement 8 system calls: format, open, read, write, seek, close, delete, fize
- * All comments derived from program specifications
+ * File system we implement the minimum 8 system calls: [d] format, open, close, delete, [t] read, write, seek, fize
+ * Other system call: [t] deallocBlocks
  * @date 03/06/2023
  */
 
 public class FileSystem {
-
-   // define the maximum number of files that can be open at once
-   private static final int MAX_OPEN_FILES = 32;
-
-   // define the open file table
-   private FileTableEntry[] openFileTable;
-
+   // Instance variables
    private SuperBlock superblock;
    private Directory directory;
    private FileTable filetable;
 
+   // Constructor
    public FileSystem(int diskBlocks) {
-
       superblock = new SuperBlock(diskBlocks);
       // System.out.println("" + superblock.totalInodes);
       directory = new Directory(superblock.totalInodes);
