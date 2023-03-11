@@ -40,7 +40,6 @@ public class FileSystem {
    // inodes to be allocated) in your file system. The return value is 0 on
    // success, otherwise -1.
    public boolean format(int files) {
-      System.out.println("CHEESe");
       superblock.format(files);
       directory = new Directory(superblock.totalInodes);
       filetable = new FileTable(directory);

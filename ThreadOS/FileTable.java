@@ -29,42 +29,56 @@ public class FileTable {
       Inode inode = null;
 
       while (true) {
+         
          // Look up the inode for the given filename in the directory.
-         iNumber = filename.equals("/") ? 0 : dir.namei(filename);
+         iNumber = filename.equals("/") ? (short) 0 : dir.namei(filename);
+
          if (iNumber >= 0) {
 
             // If the inode already exists, get it from disk.
             inode = new Inode(iNumber);
 
-            // Check if the file is being opened for reading.
-            if (mode.equals("r")) { // if ( mode.compareTo( "r")) { } "compareTo" causes error
-
-               // If the file is not currently being written, mark it as being read and return.
-               if (inode.flag == 1) { // no need to wait
+            if (mode.equals("r")) {
+                
+               // if its read, used, or unused
+               if (inode.flag == 0 || inode.flag == 1 || inode.flag == 2) {
+                  // flag = to read
+                  inode.flag = 2;
                   break;
-               } else if (inode.flag == 2) {
+               } else if (inode.flag == 3) {   // wait if its being written 
                   try {
-                     wait(); // wait for a write to exit
-                  } catch (InterruptedException ex) {
-                  }
-               } else if (inode.flag == 0) { // to be deleted
-                  iNumber = -1; // no more open
-                  return null;
+                     wait();
+                  } catch (InterruptedException e) { }
                }
-            } else if (mode.equals("w")) {
-               // If the inode does not exist and the file is not being opened for reading,
-               // allocate a new inode for the file and mark it as being written.
-               iNumber = dir.ialloc(filename);
-               inode = new Inode(iNumber);
-               inode.flag = 2;
-               break;
-            } else {
-               // If the inode does not exist and the file is being opened for reading,
-               // return null to indicate that the file could not be opened.
-               return null;
+
+            } else {    // requested for writing
+               
+               // if used or unused
+               if (inode.flag == 1 || inode.flag == 0) {
+                    inode.flag = 3;
+                    break;
+                } else {      // wait if its write or read
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {}
+                }
+
             }
+
+         // create new inode for file if node doesn't exist
+         } else if (!mode.equals("r")) {
+            iNumber = dir.ialloc(filename);
+            inode = new Inode(iNumber);
+            inode.flag = 3;
+            break;
+         } else {
+            // If the inode does not exist and the file is being opened for reading,
+            // return null to indicate that the file could not be opened.
+            return null;
          }
+
       }
+      
       // Update the inode on disk and create a new file table entry for the file.
       // this is derived from the professor
       inode.count++;
