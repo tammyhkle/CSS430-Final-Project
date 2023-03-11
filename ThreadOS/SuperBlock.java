@@ -1,12 +1,24 @@
+/*
+ * @file SuperBlock.java 
+ * @author Tammy Le & Dani Shaykho
+ * @brief CSS 430B O.S.
+ * Implemented: [d] sync, getFreeBlock, returnBlock, [t] format
+ * @date 03/06/2023
+ */
+
+
 // import ThreadOS.Inode;
 
 public class SuperBlock {
-
+   // Class constant
    private final int defaultInodeBlocks = 64;
+
+   // Instance variables
    public int totalBlocks; // the number of disk blocks
    public int totalInodes; // the number of inodes
    public int freeList; // the block number of the free list's head
 
+   // Constructor
    // derived from professor's pdf
    public SuperBlock(int diskSize) {
       // read the superblock from disk.
@@ -14,12 +26,17 @@ public class SuperBlock {
       SysLib.rawread(0, superBlock);
       totalBlocks = SysLib.bytes2int(superBlock, 0);
       totalInodes = SysLib.bytes2int(superBlock, 4);
+      // PRINT FOR DEBUG
+      System.out.println("initial totalInodes: " + totalInodes);
+
       freeList = SysLib.bytes2int(superBlock, 8);
 
       // check disk contents are valid.
       if (totalBlocks == diskSize && totalInodes > 0 && freeList >= 2) {
          return;
       } else { // if invalid, call format( ).
+         // PRINT FOR DEBUG
+         System.out.println("Calling format: " + diskSize);
          totalBlocks = diskSize;
          format(defaultInodeBlocks);
       }
@@ -31,6 +48,9 @@ public class SuperBlock {
       byte[] superBlock = new byte[Disk.blockSize];
       SysLib.int2bytes(totalBlocks, superBlock, 0);
       SysLib.int2bytes(totalInodes, superBlock, 4);
+      // PRINT FOR DEBUG
+      System.out.println("Total Inodes: " + totalInodes);
+
       SysLib.int2bytes(freeList, superBlock, 8);
       SysLib.rawwrite(0, superBlock);
    }
@@ -41,6 +61,9 @@ public class SuperBlock {
          files = defaultInodeBlocks;
       }
 
+      // resetting the totalInodes to 64 (int)
+      totalInodes = files;
+
       // Initialize each inode and write it back to disk
       for (int i = 0; i < files; i++) {
          Inode inode = new Inode();
@@ -49,9 +72,9 @@ public class SuperBlock {
 
       // set up freelist
       if (files % 16 == 0) {
-         freeList = files / 16 + 1;
+         freeList = ( files / 16 ) + 1;
       } else {
-         freeList = files / 16 + 2;
+         freeList = ( files / 16 ) + 2;
       }
       // Write the initialized free blocks to the disk.
       for (int i = freeList; i < defaultInodeBlocks - 1; i++) {
