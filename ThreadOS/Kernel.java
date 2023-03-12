@@ -155,14 +155,12 @@ public class Kernel {
                      case STDERR:
                         System.out.println("threaOS: caused read errors");
                         return ERROR;
-                     default:
-                        if ((myTcb = scheduler.getMyTcb()) != null) {
-                           FileTableEntry ftEntry = myTcb.getFtEnt(param);
-                           if (ftEntry != null) {
-                              System.out.println("READ IF");
-                              return fs.read(ftEntry, (byte[])args);
-                           }
-                        }
+                  }
+                  if ((myTcb = scheduler.getMyTcb()) != null) {
+                     FileTableEntry ftEntry = myTcb.getFtEnt(param);
+                     if (ftEntry != null) {
+                        return fs.read(ftEntry, (byte[])args);
+                     }
                   }
                   return ERROR;
                case WRITE:

@@ -104,68 +104,76 @@ public class FileSystem {
    // been read, or a negative value upon an error (-1)
 
    public synchronized int read(FileTableEntry ftEntry, byte[] buffer) {
-      // Check that entry and buffer are not null
-      if (ftEntry == null || buffer == null) {
-         System.out.println("ftEntry: " + ftEntry);
-         System.out.println("buffer: " + buffer);
-         return -1;
-      }
 
-      // Check that the entry's mode is not write or append
-      if (ftEntry.mode.equals("w") || ftEntry.mode.equals("a")) {
-         System.out.println("mode: " + ftEntry.mode);
-
-         return -1;
-      }
-
-      // Get the size of the buffer and initialize variables for tracking read
-      // progress
+		Inode theInode;
+      byte[] readBuffer;
       int bufferSize = buffer.length;
-      int bytesRead = 0;
-      int bytesRemaining = bufferSize;
-      int blockIndex = 0;
+		int block, seekPtr, offsetPosition, diskBytes, remainingBytes, toRead, indexPosition;
 
-      synchronized (ftEntry) {
-         // Loop until all requested data has been read or an error occurs
-         while (bytesRead < bufferSize && ftEntry.seekPtr < fsize(ftEntry)) {
-            // Calculate the index of the block to read from and read the block data
-            int blockNumber = ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
-            if (blockNumber == -1) {
-               System.out.println("blockNumber: " + blockNumber);
-               return -1;
-            }
-            byte[] blockData = new byte[Disk.blockSize];
-            SysLib.rawread(blockNumber, blockData);
-
-            // Calculate the offset within the block and the number of bytes left to read
-            // from the block
-            int blockOffset = ftEntry.seekPtr % Disk.blockSize;
-            int bytesLeftInBlock = Disk.blockSize - blockOffset;
-
-            // Calculate the number of bytes to read from this block and adjust
-            // bytesRemaining accordingly
-
-            int bytesToRead = Math.min(bytesRemaining, bytesLeftInBlock); // math.min returns the smaller value between
-                                                                          // 2 values
-
-            // int bytesToRead;
-            // if (bytesRemaining > bytesLeftInBlock) {
-            // bytesToRead = bytesLeftInBlock;
-            // } else {
-            // bytesToRead = bytesRemaining;
-            // }
-            // bytesRemaining -= bytesToRead;
-
-            // Copy the data from the block to the buffer and update seekPtr and bytesRead
-            System.arraycopy(blockData, blockOffset, buffer, blockIndex, bytesToRead);
-            ftEntry.seekPtr += bytesToRead;
-            bytesRead += bytesToRead;
-            blockIndex += bytesToRead;
-         }
-         System.out.println("Print out bytesRead: " + bytesRead);
-         // Return the number of bytes read
-         return bytesRead;
+		if(ftEntry == null) {
+			return -1;
       }
+
+		// Check that the entry's mode is not append or write 
+		if ((ftEntry.mode.equals("a")) || (ftEntry.mode.equals("w"))) {
+			return -1;
+      }
+
+		if ((theInode = ftEntry.inode) == null) {
+			return -1;
+      }
+
+		synchronized(ftEntry) {
+			
+			readBuffer = new byte[Disk.blockSize];
+			seekPtr = ftEntry.seekPtr;                     // retreive seekPtr position
+			indexPosition = 0;
+
+			// while not end of file
+			while(indexPosition < bufferSize) {
+				
+				offsetPosition = seekPtr % Disk.blockSize;      // set offset
+            remainingBytes = bufferSize - indexPosition;    // bytes remaining to read
+				diskBytes = Disk.blockSize - offsetPosition;    // bytes remaining in disk
+
+				// choose smallest: buffer or disk (avoid null ptr exception)
+				if (diskBytes > remainingBytes) {
+					toRead = remainingBytes;
+            } else {
+               toRead = diskBytes;
+            }
+
+				block = theInode.findTargetBlock(offsetPosition);
+				if (block == -1) {
+					return -1;
+            }
+
+            // verify block
+            if (block < 0 || block >= superblock.totalBlocks) {
+					break;
+            }
+
+				if (offsetPosition == 0) {
+					readBuffer = new byte[Disk.blockSize];
+            }
+
+				// read disk contents into buffer
+				if (SysLib.rawread(block, readBuffer) == -1) {
+					return -1;
+            }
+
+				//copy read data into buffer
+				System.arraycopy(readBuffer, offsetPosition, buffer, indexPosition, toRead);
+				indexPosition += toRead;
+				seekPtr += toRead;
+			}
+
+			// update seekPtr 
+			seek(ftEntry, indexPosition, 1);
+		}
+
+		// return last read position
+		return indexPosition;
    }
 
    /* WRITE */
@@ -192,7 +200,7 @@ public class FileSystem {
          return -1;
       }
 
-      int bufferLength = buffer.length;
+      int bufferSize = buffer.length;
 
       // synchronize to prevent race conditions
       synchronized (ftEntry) {
@@ -209,10 +217,10 @@ public class FileSystem {
          byte[] writeData = new byte[Disk.blockSize];
 
          // run loop as long as buffer isn't empty
-         while (currentPosition < bufferLength) {
+         while (currentPosition < bufferSize) {
             // setting offset, remaining bytes in buffer, and remaining bytes on disk variables
             offsetPosition = seekPtr % Disk.blockSize;
-            bytesRemaining = bufferLength - currentPosition;
+            bytesRemaining = bufferSize - currentPosition;
             diskBytes = Disk.blockSize - offsetPosition;
 
             // if the space requested is greater than the space remaining on the disk,
