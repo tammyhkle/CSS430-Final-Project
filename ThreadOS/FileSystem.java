@@ -336,4 +336,12 @@ public class FileSystem {
       // then return true aka success
       return true;
    }
+
+   public void sync() {
+      byte[] tempData = directory.directory2bytes();
+      FileTableEntry root = open("/", "w");
+      write(root, tempData);
+      close(root);
+      superblock.sync();
+   }
 }

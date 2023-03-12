@@ -1,4 +1,3 @@
-
 /*
  * @file FileTable.java 
  * @author Tammy Le
@@ -10,18 +9,18 @@ import java.util.Vector;
 
 public class FileTable {
    // Class constants for inode flags
-   public final static int UNUSED = 0;
-   public final static int USED = 1;
-   public final static int READ = 2;
-   public final static int WRITE = 3;
+   public final static short APPEND = 0;
+   public final static short READONLY = 1;
+   public final static short WRITEONLY = 2;
+   public final static short READWRITE = 3;
 
    // Instance variables
-   private Vector<FileTableEntry> table; // the actual entity of this file table
+   private Vector < FileTableEntry > table; // the actual entity of this file table
    private Directory dir; // the root directory
 
    // Constructor
    public FileTable(Directory directory) { // constructor
-      table = new Vector<FileTableEntry>(); // instantiate a file (structure) table
+      table = new Vector < FileTableEntry > (); // instantiate a file (structure) table
       dir = directory; // receive a reference to the Director from the file system
    }
 
@@ -32,62 +31,39 @@ public class FileTable {
    // immediately write back this inode to the disk
    // return a reference to this file (structure) table entry
    public synchronized FileTableEntry falloc(String filename, String mode) {
-      short iNumber = -1;
+
+      short inputMode = getMode(mode);
+      short iNumber = dir.namei(filename);
       Inode inode = null;
 
       while (true) {
-
-         // Look up the inode for the given filename in the directory.
-         iNumber = filename.equals("/") ? (short) 0 : dir.namei(filename);
-
-         // If the file exists
-         if (iNumber >= 0) {
-
-            // If the inode already exists, get it from disk.
+         if ((iNumber) == (short) -1) {
+            iNumber = dir.ialloc(filename);
+            if (inputMode == READONLY) {
+               return null;
+            }
+            if ((iNumber) == (short) -1) {
+               return null;
+            }
             inode = new Inode(iNumber);
+            break;
 
-            // If the mode is Read:
-            if (mode.equals("r")) {
-
-               // if its read, used, or unused
-               if (inode.flag == READ || inode.flag == USED || inode.flag == UNUSED) {
-                  // flag = to read
-                  inode.flag = READ;
-                  break;
-               } else if (inode.flag == WRITE) { // wait if its being written
-                  try {
-                     wait();
-                  } catch (InterruptedException e) {
-                  }
-               }
-
-            } else { // requested for writing (aka mode is Write)
-
-               // if used or unused
-               if (inode.flag == USED || inode.flag == UNUSED) {
-                  inode.flag = WRITE;
-                  break;
-               } else { // wait if its write or read
-                  try {
-                     wait();
-                  } catch (InterruptedException e) {
-                  }
-               }
-
+         } else {
+            
+            inode = new Inode(iNumber);
+            if (inputMode == READONLY && inode.flag == WRITEONLY) {
+               break;
+            } else if (inode.flag == 10) {
+               return null;
+            } else if (inode.flag == APPEND || inode.flag == READONLY) {
+               break;
+            } else {
+               try {
+                  wait();
+               } catch (InterruptedException e) {}
             }
 
-            // create new inode for file if node doesn't exist
-         } else if (!mode.equals("r")) {
-            iNumber = dir.ialloc(filename);
-            inode = new Inode(iNumber);
-            inode.flag = 3;
-            break;
-         } else {
-            // If the inode does not exist and the file is being opened for reading,
-            // return null to indicate that the file could not be opened.
-            return null;
          }
-
       }
 
       // Update the inode on disk and create a new file table entry for the file.
@@ -97,6 +73,85 @@ public class FileTable {
       FileTableEntry ftEntry = new FileTableEntry(inode, iNumber, mode);
       table.addElement(ftEntry); // create a table entry and register it
       return ftEntry; // returning a FileTableEntry object
+
+      // short iNumber = -1;
+      // Inode inode = null;
+
+      // while (true) {
+      //    // Look up the inode for the given filename in the directory.
+      //    iNumber = (filename.equals("/") ? (short) 0 : dir.namei(filename));
+
+      //    // If the file exists
+      //    if ((int) iNumber >= 0) {
+
+      //       // If the inode already exists, get it from disk.
+      //       inode = new Inode(iNumber);
+
+      //       // If the mode is Read:
+      //       if (mode.equals("r")) {
+
+      //          // if its read, used, or unused
+      //          if (inode.flag == READ || inode.flag == USED || inode.flag == UNUSED) {
+      //             // flag = to read
+      //             inode.flag = READ;
+      //             break;
+      //          } else if (inode.flag == WRITE) { // wait if its being written
+      //             System.out.println("\n1");
+      //             try {
+      //                wait();
+      //             } catch (InterruptedException e) {
+      //             }
+      //          }
+
+      //       } else { // requested for writing (aka mode is Write)
+
+      //          // if used or unused
+      //          if (inode.flag == USED || inode.flag == UNUSED) {
+      //             inode.flag = WRITE;
+      //             break;
+      //          } else { // wait if its write or read
+      //             try {
+      //                wait();
+      //             } catch (InterruptedException e) {}
+      //          }
+
+      //       }
+
+      //       // create new inode for file if node doesn't exist
+      //    } else if (!mode.equals("r")) {
+      //       iNumber = dir.ialloc(filename);
+      //       inode = new Inode(iNumber);
+      //       inode.flag = WRITE;
+      //       break;
+      //    } else {
+      //       // If the inode does not exist and the file is being opened for reading,
+      //       // return null to indicate that the file could not be opened.
+      //       return null;
+      //    }
+
+      // }
+
+      // // Update the inode on disk and create a new file table entry for the file.
+      // // this is derived from the professor
+      // inode.count++;
+      // inode.toDisk(iNumber);
+      // FileTableEntry ftEntry = new FileTableEntry(inode, iNumber, mode);
+      // table.addElement(ftEntry); // create a table entry and register it
+      // return ftEntry; // returning a FileTableEntry object
+   }
+
+   public short getMode(String string) {
+      if (string.equals("a")) {
+         return APPEND;
+      } else if (string.equals("w")) {
+         return WRITEONLY;
+      } else if (string.equals("r")) {
+         return READONLY;
+      } else if (string.equals("w+")) {
+         return READWRITE;
+      } else {
+         return -1;
+      }
    }
 
    /* FFREE */

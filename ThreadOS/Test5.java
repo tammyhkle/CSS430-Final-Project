@@ -129,7 +129,6 @@ class Test5 extends Thread {
     //.............................................."
     SysLib.cout( "5: reopen and read from \"css430\".." );
     fd = SysLib.open( "css430", "r" );
-    System.out.println("Test 5 ");
     byte[] tmpBuf = new byte[16];
     size = SysLib.read( fd, tmpBuf );
     if ( size != 16 ) {
