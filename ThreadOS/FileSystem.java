@@ -20,6 +20,10 @@ public class FileSystem {
    public final static short WRITE = 3; 
    public final static short DELETE = 4; 
 
+   private final int SEEK_SET = 0; // set file pointer to offset
+   private final int SEEK_CUR = 1; // set file pointer to current plus offset
+   private final int SEEK_END = 2; // set file pointer to EOF plus offset
+
    // Constructor
    public FileSystem(int diskBlocks) {
       superblock = new SuperBlock(diskBlocks);
@@ -105,10 +109,10 @@ public class FileSystem {
 
    public synchronized int read(FileTableEntry ftEntry, byte[] buffer) {
 
-		Inode theInode;
+		Inode inode;
       byte[] readBuffer;
       int bufferSize = buffer.length;
-		int block, seekPtr, offsetPosition, diskBytes, remainingBytes, toRead, indexPosition;
+		int block, seekPtr, offset, diskBytes, remainingBytes, toRead, indexPosition;
 
 		if(ftEntry == null) {
 			return -1;
@@ -118,23 +122,24 @@ public class FileSystem {
 		if ((ftEntry.mode.equals("a")) || (ftEntry.mode.equals("w"))) {
 			return -1;
       }
-
-		if ((theInode = ftEntry.inode) == null) {
+      
+      inode = ftEntry.inode;
+		if (inode == null) {
 			return -1;
       }
 
 		synchronized(ftEntry) {
 			
 			readBuffer = new byte[Disk.blockSize];
-			seekPtr = ftEntry.seekPtr;                     // retreive seekPtr position
+			seekPtr = ftEntry.seekPtr;                         // retreive seekPtr position
 			indexPosition = 0;
 
 			// while not end of file
 			while(indexPosition < bufferSize) {
 				
-				offsetPosition = seekPtr % Disk.blockSize;      // set offset
+				offset = seekPtr % Disk.blockSize;              // set offset
             remainingBytes = bufferSize - indexPosition;    // bytes remaining to read
-				diskBytes = Disk.blockSize - offsetPosition;    // bytes remaining in disk
+				diskBytes = Disk.blockSize - offset;            // bytes remaining in disk
 
 				// choose smallest: buffer or disk (avoid null ptr exception)
 				if (diskBytes > remainingBytes) {
@@ -143,17 +148,17 @@ public class FileSystem {
                toRead = diskBytes;
             }
 
-				block = theInode.findTargetBlock(offsetPosition);
-				if (block == -1) {
+				block = inode.findTargetBlock(offset);
+				
+            // verify block
+            if (block == -1) {
 					return -1;
             }
-
-            // verify block
             if (block < 0 || block >= superblock.totalBlocks) {
 					break;
             }
 
-				if (offsetPosition == 0) {
+				if (offset == 0) {
 					readBuffer = new byte[Disk.blockSize];
             }
 
@@ -163,7 +168,7 @@ public class FileSystem {
             }
 
 				//copy read data into buffer
-				System.arraycopy(readBuffer, offsetPosition, buffer, indexPosition, toRead);
+				System.arraycopy(readBuffer, offset, buffer, indexPosition, toRead);
 				indexPosition += toRead;
 				seekPtr += toRead;
 			}
@@ -298,10 +303,6 @@ public class FileSystem {
       // Return current position.
       return currentPosition;
    }
-
-   private final int SEEK_SET = 0; // set file pointer to offset
-   private final int SEEK_CUR = 1; // set file pointer to current plus offset
-   private final int SEEK_END = 2; // set file pointer to EOF plus offset
 
    /* SEEK */
    // Updates the seek pointer corresponding to fd as follows:
