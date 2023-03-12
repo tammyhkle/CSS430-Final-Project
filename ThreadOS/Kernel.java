@@ -165,12 +165,17 @@ public class Kernel {
                         return ERROR;
                      case STDOUT:
                         System.out.print((String) args);
-                        break;
+                        return OK;
                      case STDERR:
                         System.err.print((String) args);
-                        break;
+                        return OK;
                   }
-                  return fs.write(param, args);
+                  if ((myTcb = scheduler.getMyTcb()) != null) {
+                     FileTableEntry ftEntry = myTcb.getFtEnt( param );
+                     if (ftEntry != null)
+                        return fs.write(ftEntry, (byte[]) args);
+                  }
+                  return ERROR;
                case CREAD: // to be implemented in assignment 4
                   return cache.read(param, (byte[]) args) ? OK : ERROR;
                case CWRITE: // to be implemented in assignment 4
