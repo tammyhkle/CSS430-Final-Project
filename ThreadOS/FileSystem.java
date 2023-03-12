@@ -179,7 +179,7 @@ public class FileSystem {
          short blockNumber;
 
          // while there is sill data to write and seekPtr is within file size
-         while (bufferSize > 0 && ftEntry.seekPtr < fsize(ftEntry)) {
+         while (bufferSize > 0 ) {
             // find block # and offset for current seekPtr position
             blockNumber = (short) ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
 
