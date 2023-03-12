@@ -156,7 +156,13 @@ public class Kernel {
                         System.out.println("threaOS: caused read errors");
                         return ERROR;
                   }
-                  // return FileSystem.read( param, byte args[] );
+                  if ((myTcb = scheduler.getMyTcb()) != null) {
+                     FileTableEntry ftEntry = myTcb.getFtEnt(param);
+                     if (ftEntry != null) {
+                        System.out.println("READ IF");
+                        return fs.read(ftEntry, (byte[]) args);
+                     }
+                  }
                   return ERROR;
                case WRITE:
                   switch (param) {
@@ -172,8 +178,9 @@ public class Kernel {
                   }
                   if ((myTcb = scheduler.getMyTcb()) != null) {
                      FileTableEntry ftEntry = myTcb.getFtEnt( param );
-                     if (ftEntry != null)
+                     if (ftEntry != null) {
                         return fs.write(ftEntry, (byte[]) args);
+                     }
                   }
                   return ERROR;
                case CREAD: // to be implemented in assignment 4
@@ -189,8 +196,7 @@ public class Kernel {
                case OPEN: // to be implemented in project
                   if ((myTcb = scheduler.getMyTcb()) != null) {
                      String[] s = (String[]) args;
-                     FileTableEntry ftEntry = fs.open(s[0], s[1]);
-                     return myTcb.getFd(ftEntry);
+                     return myTcb.getFd(fs.open(s[0], s[1]));
                   } else {
                      return ERROR;
                   }
