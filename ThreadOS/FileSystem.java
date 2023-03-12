@@ -176,27 +176,27 @@ public class FileSystem {
       // synchronize ftEntry to make sure we can access file data
       synchronized (ftEntry) {
          // more initializing to track block data and offsets during write
-         int blockNumber;
+         short blockNumber;
 
          // while there is sill data to write and seekPtr is within file size
          while (bufferSize > 0 && ftEntry.seekPtr < fsize(ftEntry)) {
             // find block # and offset for current seekPtr position
-            blockNumber = ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
+            blockNumber = (short) ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
 
             if (blockNumber == -1) {
                // if block doesn't exist yet, then need to allocate a new block
                short newBlockNumber = (short)superblock.getFreeBlock();
 
-               int blockTestPtr = ftEntry.inode.findIndexBlock();
+               int blockTestPtr = ftEntry.inode.registerTargetBlock(ftEntry.seekPtr, blockNumber);
 
                if (blockTestPtr == -3) {
                   short getFreeBlock = (short)superblock.getFreeBlock();
 
                   // if the ind. ptr is empty
-                  if (!ftEntry.inode.registerIndexBlock((short) getFreeBlock)) {
+                  if (!ftEntry.inode.registerIndexBlock(getFreeBlock)) {
                      return -1;
                   }
-                  if (ftEntry.inode.findIndexBlock() != 0) {
+                  if (ftEntry.inode.registerTargetBlock(ftEntry.seekPtr, blockNumber) != 0) {
                      return -1;
                   }
                } else if (blockTestPtr == -1 || blockTestPtr == -2) {
