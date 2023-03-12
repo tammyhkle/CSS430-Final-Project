@@ -115,8 +115,13 @@ public class Inode {
 
    int findTargetBlock(int offset) { // find the block# including offset
       int directNumber = offset / Disk.blockSize;
-      if (directNumber < directSize) // target is in direct pointers
+      System.out.println("directNumber: " + directNumber);
+      System.out.println("offset: " + offset);
+
+      if (directNumber < directSize) { // target is in direct pointers
+         System.out.println("direct[directNumber]: " + direct[directNumber]);
          return direct[directNumber];
+      }
       else { // target is in indiret pointer
          if (indirect < 0) // indirect is null
             return -1;

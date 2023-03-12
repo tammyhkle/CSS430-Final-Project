@@ -99,11 +99,15 @@ public class FileSystem {
    public synchronized int read(FileTableEntry ftEntry, byte[] buffer) {
       // Check that entry and buffer are not null
       if (ftEntry == null || buffer == null) {
+         System.out.println("ftEntry: " + ftEntry);
+         System.out.println("buffer: " + buffer);
          return -1;
       }
 
       // Check that the entry's mode is not write or append
       if (ftEntry.mode.equals("w") || ftEntry.mode.equals("a")) {
+         System.out.println("mode: " + ftEntry.mode);
+
          return -1;
       }
 
@@ -120,6 +124,7 @@ public class FileSystem {
             // Calculate the index of the block to read from and read the block data
             int blockNumber = ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
             if (blockNumber == -1) {
+               System.out.println("blockNumber: " + blockNumber);
                return -1;
             }
             byte[] blockData = new byte[Disk.blockSize];
@@ -150,7 +155,7 @@ public class FileSystem {
             bytesRead += bytesToRead;
             blockIndex += bytesToRead;
          }
-
+         System.out.println("Print out bytesRead: " + bytesRead);
          // Return the number of bytes read
          return bytesRead;
       }
@@ -186,7 +191,6 @@ public class FileSystem {
             if (blockNumber == -1) {
                // if block doesn't exist yet, then need to allocate a new block
                short newBlockNumber = (short)superblock.getFreeBlock();
-
                int blockTestPtr = ftEntry.inode.registerTargetBlock(ftEntry.seekPtr, blockNumber);
 
                if (blockTestPtr == -3) {
