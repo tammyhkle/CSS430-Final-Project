@@ -8,17 +8,19 @@ public class Inode {
    public final static int ErrorPrecBlockUnused = -2;
    public final static int ErrorIndirectNull = -3;
 
-   // Class constants for inode flags
-   public final static short APPEND = 0;
-   public final static short READONLY = 1;
-   public final static short WRITEONLY = 2;
-   public final static short READWRITE = 3;
-
    public int length; // file size in bytes
    public short count; // # file-table entries pointing to this
-   public short flag; // 0 = APPEND, 1 = READONLY, 2 = WRITEONLY, 3 = READWRITE
+   public short flag;  // 0 = unused, 1 = used(r), 2 = used(!r), 
+   // 3=unused(wreg), 4=used(r,wreq), 5= used(!r,wreg)
    public short direct[] = new short[directSize]; // directo pointers
    public short indirect; // an indirect pointer
+
+      // Class constants for inode states
+      public final static short UNUSED = 0; 
+      public final static short USED = 1;
+      public final static short READ = 2; 
+      public final static short WRITE = 3; 
+      public final static short DELETE = 4; 
 
    Inode() { // a default constructor
       length = 0;
@@ -115,11 +117,11 @@ public class Inode {
 
    int findTargetBlock(int offset) { // find the block# including offset
       int directNumber = offset / Disk.blockSize;
-      System.out.println("directNumber: " + directNumber);
-      System.out.println("offset: " + offset);
+      // System.out.println("directNumber: " + directNumber);
+      // System.out.println("offset: " + offset);
 
       if (directNumber < directSize) { // target is in direct pointers
-         System.out.println("direct[directNumber]: " + direct[directNumber]);
+         // System.out.println("direct[directNumber]: " + direct[directNumber]);
          return direct[directNumber];
       }
       else { // target is in indiret pointer
