@@ -185,13 +185,15 @@ public class FileSystem {
 
             if (blockNumber == -1) {
                // if block doesn't exist yet, then need to allocate a new block
-               int newBlockNumber = superblock.getFreeBlock();
+               short newBlockNumber = (short)superblock.getFreeBlock();
 
                int blockTestPtr = ftEntry.inode.findIndexBlock();
 
                if (blockTestPtr == -3) {
-                  int getFreeBlock = superblock.getFreeBlock();
-                  if (ftEntry.inode.registerIndexBlock((short) getFreeBlock)) {
+                  short getFreeBlock = (short)superblock.getFreeBlock();
+
+                  // if the ind. ptr is empty
+                  if (!ftEntry.inode.registerIndexBlock((short) getFreeBlock)) {
                      return -1;
                   }
                   if (ftEntry.inode.findIndexBlock() != 0) {
@@ -236,8 +238,8 @@ public class FileSystem {
             ftEntry.inode.length = ftEntry.seekPtr;
          }
          ftEntry.inode.toDisk(ftEntry.iNumber);
+         return bytesWritten;
       }
-      return bytesWritten;
    }
 
    private final int SEEK_SET = 0; // set file pointer to offset
