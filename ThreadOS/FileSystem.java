@@ -94,7 +94,7 @@ public class FileSystem {
             return filetable.ffree(ftEntry);
          }
 
-         return false;
+         return true;
       }
    }
 
@@ -106,7 +106,6 @@ public class FileSystem {
    // the beginning of buffer. It increments the seek pointer by the number of
    // bytes to have been read. The return value is the number of bytes that have
    // been read, or a negative value upon an error (-1)
-
    public synchronized int read(FileTableEntry ftEntry, byte[] buffer) {
 
 		Inode inode;
@@ -134,10 +133,10 @@ public class FileSystem {
 			seekPtr = ftEntry.seekPtr;                         // retreive seekPtr position
 			indexPosition = 0;
 
-			// while not end of file
+			// while not end of file while(indexPosition < bufferSize) 
 			while(indexPosition < bufferSize) {
 				
-				offset = seekPtr % Disk.blockSize;              // set offset
+				offset = ftEntry.seekPtr % Disk.blockSize;              // set offset
             remainingBytes = bufferSize - indexPosition;    // bytes remaining to read
 				diskBytes = Disk.blockSize - offset;            // bytes remaining in disk
 
@@ -170,7 +169,7 @@ public class FileSystem {
 				//copy read data into buffer
 				System.arraycopy(readBuffer, offset, buffer, indexPosition, toRead);
 				indexPosition += toRead;
-				seekPtr += toRead;
+				ftEntry.seekPtr += toRead;
 			}
 
 			// update seekPtr 
@@ -355,10 +354,12 @@ public class FileSystem {
    // Unless specified otherwise, each of the above system calls returns -1
    // negative when detecting an error.
    public int fsize(FileTableEntry ftEntry) {
-      if (ftEntry.inode != null) {
-         return ftEntry.inode.length;
+      synchronized(ftEntry) {
+         if (ftEntry.inode != null) {
+            return ftEntry.inode.length;
+         }
+         return -1; // error
       }
-      return -1; // error
    }
 
    /* DEALLOCALLBLOCKS */
