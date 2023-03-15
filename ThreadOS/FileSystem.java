@@ -191,7 +191,7 @@ public class FileSystem {
    public int write(FileTableEntry ftEntry, byte[] buffer) {
       // initialize variables
       short block;
-      int offsetPosition, bytesRemaining, diskBytes, toWrite, currentPosition, seekPtr;
+      int offset, bytesRemaining, diskBytes, toWrite, currentPosition, seekPtr;
 
       // Checking for invalid states
       if (ftEntry == null || ftEntry.mode.equals("r")) { // file is null or in read mode
@@ -224,9 +224,9 @@ public class FileSystem {
          // run loop as long as buffer isn't empty
          while (currentPosition < bufferSize) {
             // setting offset, remaining bytes in buffer, and remaining bytes on disk variables
-            offsetPosition = seekPtr % Disk.blockSize;
+            offset = seekPtr % Disk.blockSize;
             bytesRemaining = bufferSize - currentPosition;
-            diskBytes = Disk.blockSize - offsetPosition;
+            diskBytes = Disk.blockSize - offset;
 
             // if the space requested is greater than the space remaining on the disk,
             // write until the space is filled. otherwise write the whole thing
@@ -237,7 +237,7 @@ public class FileSystem {
             }
 
             // gets targetBlock
-            block = (short) ftEntryInode.findTargetBlock(offsetPosition);
+            block = (short) ftEntryInode.findTargetBlock(offset);
             if (block == -1) { // block does not exist
                // Try to allocate new block, check if out of memory
                block = (short) superblock.getFreeBlock();
@@ -275,12 +275,12 @@ public class FileSystem {
                break;
             }
             // initialize writeData buffer 
-            if (offsetPosition == 0) {
+            if (offset == 0) {
                writeData = new byte[Disk.blockSize];
             }
             // read the data to the data byte array
             SysLib.rawread(block, writeData);
-            System.arraycopy(buffer, currentPosition, writeData, offsetPosition, toWrite); // copy the new data to the array
+            System.arraycopy(buffer, currentPosition, writeData, offset, toWrite); // copy the new data to the array
             SysLib.rawwrite(block, writeData); // write it back
             currentPosition += toWrite; // increment variables
             seekPtr += toWrite;
@@ -307,6 +307,9 @@ public class FileSystem {
    /* SEEK */
    // Updates the seek pointer corresponding to fd as follows:
    public synchronized int seek(FileTableEntry ftEntry, int offset, int whence) {
+      if(ftEntry == null) {
+         return -1;
+      } 
 
       // synchronize on the entry object to ensure exclusive access
       synchronized (ftEntry) {
@@ -314,30 +317,25 @@ public class FileSystem {
          if (whence == SEEK_SET) {
             // if location is SEEK_SET, set seek pointer to the offset of beginning of file
             ftEntry.seekPtr = offset;
-         } else if (whence == SEEK_CUR) {
+         }
+         if (whence == SEEK_CUR) {
             // if location is SEEK_CUR, add the offset to the current seek pointer
             ftEntry.seekPtr = ftEntry.seekPtr + offset;
-         } else if (whence == SEEK_END) {
-            // if location is SEEK_END, set seek pointer to the size of file plus the offset
-            ftEntry.seekPtr = ftEntry.inode.length + offset;
-         } else {
-            // if location is not one of the valid options, return -1 (unsuccessful)
-            return -1;
          }
+         if (whence == SEEK_END) {
+            // if location is SEEK_END, set seek pointer to the size of file plus the offset
+            ftEntry.seekPtr = fsize(ftEntry) + offset;
+         } 
 
          // ensure that the seek pointer does not become negative
          if (ftEntry.seekPtr < 0) {
             ftEntry.seekPtr = 0;
+         } else if (ftEntry.seekPtr > fsize(ftEntry)) { // ensure that the seek pointer does not exceed the size of the file
+            ftEntry.seekPtr = fsize(ftEntry);
          }
-
-         // ensure that the seek pointer does not exceed the size of the file
-         if (ftEntry.seekPtr > ftEntry.inode.length) {
-            ftEntry.seekPtr = ftEntry.inode.length;
-         }
-
-         // return the new seek pointer value
-         return ftEntry.seekPtr;
-      }
+      } 
+      // return the new seek pointer value
+      return ftEntry.seekPtr;
    }
 
    /* DELETE */
