@@ -14,6 +14,13 @@ public class FileTable {
    public final static short WRITEONLY = 2;
    public final static short READWRITE = 3;
 
+   // Class constants for inode states
+   public final static short UNUSED = 0; 
+   public final static short USED = 1;
+   public final static short READ = 2; 
+   public final static short WRITE = 3; 
+   public final static short DELETE = 4; 
+   
    // Instance variables
    private Vector < FileTableEntry > table; // the actual entity of this file table
    private Directory dir; // the root directory
@@ -40,9 +47,11 @@ public class FileTable {
       while (true) {
          if ((iNumber) == (short) -1) {
             iNumber = dir.ialloc(filename);
+
             if (inputMode == READONLY) {
                return null;
             }
+
             if ((iNumber) == (short) -1) {
                return null;
             }
@@ -52,11 +61,11 @@ public class FileTable {
          } else {
             
             inode = new Inode(iNumber);
-            if (inputMode == READONLY && inode.flag == WRITEONLY) {
+            if (inode.flag == USED || inode.flag == UNUSED) {
                break;
-            } else if (inode.flag == 10) {
+            } else if (inode.flag == DELETE) {
                return null;
-            } else if (inode.flag == APPEND || inode.flag == READONLY) {
+            } else if (inode.flag == READ && inputMode == READONLY) {
                break;
             } else {
                try {
