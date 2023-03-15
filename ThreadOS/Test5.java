@@ -357,13 +357,13 @@ class Test5 extends Thread {
       return false;
     }
     for ( int i = 0; i < 100; i++ ) {
-      SysLib.cout( "buf[" + i + "] = " + tmpBuf[i] + " buf6656[" + i + "] = " + buf6656[i] + "\n" );
-      // if ( tmpBuf[i] != buf6656[i] ) {
-      //   SysLib.cout( "buf[" + i + "] = " + tmpBuf[i] + " buf6656 = " +
-      //      buf6656[i] + "\n" );
-      //   SysLib.close( fd );
-      //   return false;
-      // }
+      // SysLib.cout( "buf[" + i + "] = " + tmpBuf[i] + " buf6656[" + i + "] = " + buf6656[i] + "\n" );
+      if ( tmpBuf[i] != buf6656[i] ) {
+        SysLib.cout( "buf[" + i + "] = " + tmpBuf[i] + " buf6656 = " +
+           buf6656[i] + "\n" );
+        SysLib.close( fd );
+        return false;
+      }
     }
     for ( int i = 6656; i < 6688; i++ )
       if ( tmpBuf[i] != buf32[i - 6656] ) {

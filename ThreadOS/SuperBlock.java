@@ -48,9 +48,6 @@ public class SuperBlock {
       byte[] superBlock = new byte[Disk.blockSize];
       SysLib.int2bytes(totalBlocks, superBlock, 0);
       SysLib.int2bytes(totalInodes, superBlock, 4);
-      // PRINT FOR DEBUG
-      System.out.println("Total Inodes: " + totalInodes);
-
       SysLib.int2bytes(freeList, superBlock, 8);
       SysLib.rawwrite(0, superBlock);
    }

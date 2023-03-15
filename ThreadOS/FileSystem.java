@@ -72,7 +72,7 @@ public class FileSystem {
    public FileTableEntry open(String fileName, String mode) {
       // filetable entry is allocated
       FileTableEntry ftEntry = filetable.falloc(fileName, mode);
-      if (mode.equals("w")) { // all blocks belonging to thhis file is
+      if (mode.equals("w")) { // all blocks belonging to this file is
          if (deallocAllBlocks(ftEntry) == false) { // released
             return null;
          }
@@ -90,12 +90,12 @@ public class FileSystem {
          ftEntry.count--; // decrement user count
 
          // if no more users, remove file table entry
-         if (ftEntry.count == 0) {
-            return filetable.ffree(ftEntry);
+         if (ftEntry.count > 0) {
+            return true;
          }
 
-         return true;
       }
+      return filetable.ffree(ftEntry);
    }
 
    /* READ */
@@ -111,7 +111,7 @@ public class FileSystem {
 		Inode inode;
       byte[] readBuffer;
       int bufferSize = buffer.length;
-		int block, seekPtr, offset, diskBytes, remainingBytes, toRead, indexPosition;
+		int block, seekPtr, offset, diskBytes, remainingBytes, toRead, currentPosition;
 
 		if(ftEntry == null) {
 			return -1;
@@ -131,14 +131,14 @@ public class FileSystem {
 			
 			readBuffer = new byte[Disk.blockSize];
 			seekPtr = ftEntry.seekPtr;                         // retreive seekPtr position
-			indexPosition = 0;
+			currentPosition = 0;
 
-			// while not end of file while(indexPosition < bufferSize) 
-			while(indexPosition < bufferSize) {
+			while(currentPosition < bufferSize) {
 				
-				offset = ftEntry.seekPtr % Disk.blockSize;              // set offset
-            remainingBytes = bufferSize - indexPosition;    // bytes remaining to read
-				diskBytes = Disk.blockSize - offset;            // bytes remaining in disk
+            // block = ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
+				offset = seekPtr % Disk.blockSize;              // set offset
+            diskBytes = Disk.blockSize - offset;            // bytes remaining in disk
+            remainingBytes = bufferSize - currentPosition;    // bytes remaining to read
 
 				// choose smallest: buffer or disk (avoid null ptr exception)
 				if (diskBytes > remainingBytes) {
@@ -153,7 +153,7 @@ public class FileSystem {
             if (block == -1) {
 					return -1;
             }
-            if (block < 0 || block >= superblock.totalBlocks) {
+            else if (block < 0 || offset >= superblock.totalBlocks) {
 					break;
             }
 
@@ -167,17 +167,18 @@ public class FileSystem {
             }
 
 				//copy read data into buffer
-				System.arraycopy(readBuffer, offset, buffer, indexPosition, toRead);
-				indexPosition += toRead;
-				ftEntry.seekPtr += toRead;
+				System.arraycopy(readBuffer, offset, buffer, currentPosition, toRead);
+				currentPosition += toRead;
+				seekPtr += toRead;
 			}
 
 			// update seekPtr 
-			seek(ftEntry, indexPosition, 1);
+			seek(ftEntry, currentPosition, 1);
 		}
 
 		// return last read position
-		return indexPosition;
+      System.out.println("Content: " + currentPosition );
+		return currentPosition;
    }
 
    /* WRITE */
@@ -382,7 +383,7 @@ public class FileSystem {
          }
       }
       // loop thru all direct blocks and return each one to superblock
-      for (int i = 0; i < Inode.directSize; i++) {
+      for (int i = 0; i < ftEntry.inode.directSize; i++) {
          if (ftEntry.inode.direct[i] != -1) {
             superblock.returnBlock(ftEntry.inode.direct[i]);
             // mark the corresponding entry in inode's direct block array as unused, refer
