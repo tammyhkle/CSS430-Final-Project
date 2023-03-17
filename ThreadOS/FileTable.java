@@ -37,7 +37,6 @@ public class FileTable {
    // increment this inode's count
    // immediately write back this inode to the disk
    // return a reference to this file (structure) table entry
-   
    public synchronized FileTableEntry falloc(String filename, String mode) {
 
       short inputMode = getMode(mode);
@@ -85,6 +84,7 @@ public class FileTable {
       return ftEntry; // returning a FileTableEntry object
    }
 
+   // helper method for falloc()
    public short getMode(String string) {
       if (string.equals("a")) {
          return APPEND;

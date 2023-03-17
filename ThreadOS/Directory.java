@@ -14,9 +14,11 @@ public class Directory {
    // Directory entries
    private int fsize[]; // each element stores a different file size.
    private char fnames[][]; // each element stores a different file name.
+   int maxInumber;
 
    // Constructor
    public Directory(int maxInumber) { // directory constructor
+      this.maxInumber = maxInumber;
       fsize = new int[maxInumber]; // maxInumber = max files
       for (int i = 0; i < maxInumber; i++) {
          fsize[i] = 0; // all file size initialized to 0
@@ -64,7 +66,7 @@ public class Directory {
    // allocates a new inode number for this filename
    public short ialloc(String filename) {
       int file;
-      for (short i = 0; i < fsize.length; i++) {
+      for (int i = 0; i < fsize.length; i++) {
          if (fsize[i] == 0) {
             if (filename.length() > maxChars) {
                file = maxChars;
@@ -72,11 +74,14 @@ public class Directory {
                file = filename.length();
             }
             fsize[i] = file;
-            filename.getChars(0, fsize[i], fnames[i], 0);
-            return i;
+            for (int j = 0; j < file; j++) {
+               char stringChar = filename.charAt(j);
+               fnames[i][j] = stringChar;
+            }
+            return (short) i;
          }
       }
-      return -1;
+      return (short) -1;
    }
 
    // deallocates this inumber (inode number)
@@ -91,15 +96,15 @@ public class Directory {
 
    // returns the inumber corresponding to this filename
    public short namei(String filename) {
-      for (short i = 0; i < fsize.length; i++) {
+      for (int i = 0; i < fsize.length; i++) {
          if (fsize[i] == filename.length()) {
             String temp = new String(fnames[i], 0, fsize[i]);
             if (filename.equals(temp)) {
-               return i;
+               return (short) i;
             }
          }
       }
-      return -1;
+      return (short) -1;
    }
 
 }

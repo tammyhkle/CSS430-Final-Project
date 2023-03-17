@@ -27,7 +27,6 @@ public class FileSystem {
    // Constructor
    public FileSystem(int diskBlocks) {
       superblock = new SuperBlock(diskBlocks);
-      // System.out.println("" + superblock.totalInodes);
       directory = new Directory(superblock.totalInodes);
       filetable = new FileTable(directory);
 
@@ -42,7 +41,6 @@ public class FileSystem {
          directory.bytes2directory(dirData);
       }
       close(dirEntry);
-
    }
 
    /* FORMAT */
@@ -106,79 +104,64 @@ public class FileSystem {
    // the beginning of buffer. It increments the seek pointer by the number of
    // bytes to have been read. The return value is the number of bytes that have
    // been read, or a negative value upon an error (-1)
+   
    public synchronized int read(FileTableEntry ftEntry, byte[] buffer) {
 
-		Inode inode;
+      Inode inode;
       byte[] readBuffer;
       int bufferSize = buffer.length;
-		int block, seekPtr, offset, diskBytes, remainingBytes, toRead, currentPosition;
-
-		if(ftEntry == null) {
-			return -1;
+      int bytesRead = 0;
+      int block, startingIndex, fileBytesToRead, toRead, blockBytesToRead;
+   
+      bytesRead = 0;
+   
+      if(ftEntry == null) {
+         return -1;
       }
-
-		// Check that the entry's mode is not append or write 
-		if ((ftEntry.mode.equals("a")) || (ftEntry.mode.equals("w"))) {
-			return -1;
+   
+      // Check that the entry's mode is not append or write 
+      if ((ftEntry.mode.equals("a")) || (ftEntry.mode.equals("w"))) {
+         return -1;
       }
       
       inode = ftEntry.inode;
-		if (inode == null) {
-			return -1;
+      if (inode == null) {
+         return -1;
       }
-
-		synchronized(ftEntry) {
-			
-			readBuffer = new byte[Disk.blockSize];
-			seekPtr = ftEntry.seekPtr;                         // retreive seekPtr position
-			currentPosition = 0;
-
-			while(currentPosition < bufferSize) {
-				
-            // block = ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
-				offset = seekPtr % Disk.blockSize;              // set offset
-            diskBytes = Disk.blockSize - offset;            // bytes remaining in disk
-            remainingBytes = bufferSize - currentPosition;    // bytes remaining to read
-
-				// choose smallest: buffer or disk (avoid null ptr exception)
-				if (diskBytes > remainingBytes) {
-					toRead = remainingBytes;
-            } else {
-               toRead = diskBytes;
+   
+      synchronized(ftEntry) {
+   
+         // while not end of file
+         while(bufferSize > 0 && ftEntry.seekPtr < fsize(ftEntry)) {
+            
+            block = inode.findTargetBlock(ftEntry.seekPtr);
+            if (block == -1) {   // verify block
+               return -1;
             }
-
-				block = inode.findTargetBlock(offset);
-				
-            // verify block
-            if (block == -1) {
-					return -1;
+   
+            // read disk contents into buffer
+            readBuffer = new byte[Disk.blockSize];
+            if (SysLib.rawread(block, readBuffer) == -1) {
+               return -1;
             }
-            else if (block < 0 || offset >= superblock.totalBlocks) {
-					break;
-            }
-
-				if (offset == 0) {
-					readBuffer = new byte[Disk.blockSize];
-            }
-
-				// read disk contents into buffer
-				if (SysLib.rawread(block, readBuffer) == -1) {
-					return -1;
-            }
-
-				//copy read data into buffer
-				System.arraycopy(readBuffer, offset, buffer, currentPosition, toRead);
-				currentPosition += toRead;
-				seekPtr += toRead;
-			}
-
-			// update seekPtr 
-			seek(ftEntry, currentPosition, 1);
-		}
-
-		// return last read position
-      System.out.println("Content: " + currentPosition );
-		return currentPosition;
+            startingIndex = ftEntry.seekPtr % Disk.blockSize;
+   
+            blockBytesToRead = Disk.blockSize - startingIndex;    // bytes remaining to read in disk
+            fileBytesToRead = fsize(ftEntry) - ftEntry.seekPtr;   // bytes remaining to read in file
+            toRead = Math.min(Math.min(blockBytesToRead, fileBytesToRead), bufferSize);
+   
+            //copy read data into buffer
+            System.arraycopy(readBuffer, startingIndex, buffer, bytesRead, toRead);
+            seek(ftEntry, toRead, 1);
+            bytesRead += toRead;
+            bufferSize -= toRead;
+         
+         }
+   
+      }
+   
+      // return last read position
+      return bytesRead;
    }
 
    /* WRITE */
@@ -189,119 +172,75 @@ public class FileSystem {
    // return value is the number of bytes that have been written, or a negative
    // value upon an error (-1)
    public int write(FileTableEntry ftEntry, byte[] buffer) {
-      // initialize variables
-      short block;
-      int offset, bytesRemaining, diskBytes, toWrite, currentPosition, seekPtr;
-
-      // Checking for invalid states
-      if (ftEntry == null || ftEntry.mode.equals("r")) { // file is null or in read mode
-         return -1;
-      } 
-
-      Inode ftEntryInode = ftEntry.inode; //make sure to have ftEntry.inode after checking if it's NOT null.
-      if (ftEntryInode == null) { // There is no inode.
-         return -1;
-      } else if (ftEntryInode.flag == READ || ftEntryInode.flag == WRITE || ftEntryInode.flag == DELETE) { // inode in invalid flag state
+      
+      // make sure not read mode
+      if (ftEntry == null || ftEntry.mode == "r") {
          return -1;
       }
-
-      int bufferSize = buffer.length;
-
-      // synchronize to prevent race conditions
-      synchronized (ftEntry) {
-         // if the mode is append, set the seek pointer to the end of the block
-         if (ftEntry.mode.equals("a")) {
-            seekPtr = seek(ftEntry, 0, 2); // set seek pointer to end of file
-         } else {
-            seekPtr = ftEntry.seekPtr; // otherwise, set the seek pointer to the last position
-         }
-
-         // set flag to write
-         ftEntryInode.flag = WRITE;
-         currentPosition = 0;
-         byte[] writeData = new byte[Disk.blockSize];
-
-         // run loop as long as buffer isn't empty
-         while (currentPosition < bufferSize) {
-            // setting offset, remaining bytes in buffer, and remaining bytes on disk variables
-            offset = seekPtr % Disk.blockSize;
-            bytesRemaining = bufferSize - currentPosition;
-            diskBytes = Disk.blockSize - offset;
-
-            // if the space requested is greater than the space remaining on the disk,
-            // write until the space is filled. otherwise write the whole thing
-            if (diskBytes < bytesRemaining) {
-               toWrite = diskBytes;
+   
+      int block, startingIndex, blockBytesToRead;
+      int bytesWritten = 0;
+      int bufferLength = buffer.length;
+      int blockSize = 512;
+   
+      synchronized(ftEntry) {
+         
+         while (bufferLength > 0) {
+            
+            block = ftEntry.inode.findTargetBlock(ftEntry.seekPtr);
+   
+            // if we need to create a new block to write on
+            if (block == -1) {
+               short newLocation = (short) superblock.getFreeBlock();   // get a free block
+   
+               int registeredBlock = ftEntry.inode.registerTargetBlock(ftEntry.seekPtr, newLocation);
+   
+               if (registeredBlock == -1 || registeredBlock == -2) {
+                  return -1;
+               }
+               
+               if (registeredBlock == -3) {
+                  short freeBlock = (short) superblock.getFreeBlock();
+                  if(!ftEntry.inode.registerIndexBlock(freeBlock) || 
+                      ftEntry.inode.registerTargetBlock(ftEntry.seekPtr, newLocation) != 0) {
+                     return -1;
+                  }
+               }
+   
+               block = newLocation;
+            }
+   
+            byte[] readBuffer = new byte[blockSize];
+            if (SysLib.rawread(block, readBuffer) == -1) {
+               return -1;
+            }
+   
+            startingIndex = ftEntry.seekPtr % blockSize;
+            blockBytesToRead = blockSize - startingIndex;            // bytes remaining to read in disk
+            int toRead = Math.min(blockBytesToRead, bufferLength);
+            
+            System.arraycopy(buffer, bytesWritten, readBuffer, startingIndex, toRead);
+            SysLib.rawwrite(block, readBuffer);
+            ftEntry.seekPtr += toRead;
+            bytesWritten += toRead;
+            
+            if (blockBytesToRead > bufferLength) {
+               bufferLength = 0;
             } else {
-               toWrite = bytesRemaining;
+               bufferLength -= blockBytesToRead;
             }
 
-            // gets targetBlock
-            block = (short) ftEntryInode.findTargetBlock(offset);
-            if (block == -1) { // block does not exist
-               // Try to allocate new block, check if out of memory
-               block = (short) superblock.getFreeBlock();
-               if (block == -1) { // no blocks available
-                  // error out of memory, set delete flag then break
-                  ftEntryInode.flag = DELETE;
-                  break;
-               }
-
-               // if the block couldn't be found
-               if (ftEntryInode.registerTargetBlock(seekPtr, block) == -1) { // unable to set block
-                  // attempt to set index block, set delete flag and break on any errors
-                  if (!ftEntryInode.registerIndexBlock(block)) { // unable to set index block
-                     ftEntryInode.flag = DELETE;
-                     break;
-                  }
-                  // get a new free block
-                  block = (short) superblock.getFreeBlock();
-                  if (block == -1) { // no blocks available
-                     ftEntryInode.flag = DELETE;
-                     break;
-                  }
-
-                  // setup the new block
-                  if (ftEntryInode.registerTargetBlock(seekPtr, block) == -1) { // unable to set target block
-                     ftEntryInode.flag = DELETE;
-                     break;
-                  }
-               }
-            }
-
-            // if the block is not in the total block range, set flag to delete and exit
-            if (block >= superblock.totalBlocks) {
-               ftEntryInode.flag = DELETE;
-               break;
-            }
-            // initialize writeData buffer 
-            if (offset == 0) {
-               writeData = new byte[Disk.blockSize];
-            }
-            // read the data to the data byte array
-            SysLib.rawread(block, writeData);
-            System.arraycopy(buffer, currentPosition, writeData, offset, toWrite); // copy the new data to the array
-            SysLib.rawwrite(block, writeData); // write it back
-            currentPosition += toWrite; // increment variables
-            seekPtr += toWrite;
          }
-         // Leaving the while loop.
-         // If the file size increased, update the inode's length.
-         if (seekPtr > ftEntryInode.length) {
-            ftEntryInode.length = seekPtr;
+   
+         // update inode length
+         if (ftEntry.seekPtr > ftEntry.inode.length) {
+            ftEntry.inode.length = ftEntry.seekPtr;
          }
-         // Re-set the new seek position.
-         seek(ftEntry, currentPosition, 1);
+         
+         ftEntry.inode.toDisk(ftEntry.iNumber);
+         return bytesWritten;
 
-         // This will set flag to used
-         if (ftEntryInode.flag != DELETE) {
-            ftEntryInode.flag = USED;
-         }
-         // Then saves to disk at iNumber.
-         ftEntryInode.toDisk(ftEntry.iNumber);
       }
-      // Return current position.
-      return currentPosition;
    }
 
    /* SEEK */

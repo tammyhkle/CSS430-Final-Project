@@ -129,6 +129,7 @@ class Test5 extends Thread {
     //.............................................."
     SysLib.cout( "5: reopen and read from \"css430\".." );
     fd = SysLib.open( "css430", "r" );
+
     byte[] tmpBuf = new byte[16];
     size = SysLib.read( fd, tmpBuf );
     if ( size != 16 ) {
@@ -339,7 +340,7 @@ class Test5 extends Thread {
     SysLib.cout( "successfully completed\n" );
     return true;
   }
-
+   // SysLib.cout( "buf[" + i + "] = " + tmpBuf[i] + " buf6656[" + i + "] = " + buf6656[i] + "\n" );
   private boolean test13( ) {
     //.............................................."
     SysLib.cout( "13: append buf[32] to \"bothell\"..." );
@@ -356,8 +357,7 @@ class Test5 extends Thread {
       SysLib.close( fd );
       return false;
     }
-    for ( int i = 0; i < 100; i++ ) {
-      // SysLib.cout( "buf[" + i + "] = " + tmpBuf[i] + " buf6656[" + i + "] = " + buf6656[i] + "\n" );
+    for ( int i = 0; i < 6656; i++ ) {
       if ( tmpBuf[i] != buf6656[i] ) {
         SysLib.cout( "buf[" + i + "] = " + tmpBuf[i] + " buf6656 = " +
            buf6656[i] + "\n" );

@@ -26,17 +26,12 @@ public class SuperBlock {
       SysLib.rawread(0, superBlock);
       totalBlocks = SysLib.bytes2int(superBlock, 0);
       totalInodes = SysLib.bytes2int(superBlock, 4);
-      // PRINT FOR DEBUG
-      System.out.println("initial totalInodes: " + totalInodes);
-
       freeList = SysLib.bytes2int(superBlock, 8);
 
       // check disk contents are valid.
       if (totalBlocks == diskSize && totalInodes > 0 && freeList >= 2) {
          return;
       } else { // if invalid, call format( ).
-         // PRINT FOR DEBUG
-         System.out.println("Calling format: " + diskSize);
          totalBlocks = diskSize;
          format(defaultInodeBlocks);
       }
